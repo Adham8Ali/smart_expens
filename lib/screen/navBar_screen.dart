@@ -24,8 +24,7 @@ class _NavbarScreenState extends State<NavbarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Smart Spend')),
-
+      // appBar: AppBar(title: const Text('Smart Spend')),
       body: IndexedStack(index: currentIndex, children: screens),
 
       // زرار Add في النص
