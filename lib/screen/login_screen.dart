@@ -1,5 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_expens/screen/home_screen.dart';
+import 'package:smart_expens/screen/navBar_screen.dart';
 import 'package:smart_expens/widget/CustomTextField.dart';
 import 'package:smart_expens/widget/custom_button.dart';
 
@@ -44,8 +46,13 @@ class LoginScreen extends StatelessWidget {
                   text: 'Login',
                   textcolor: Colors.white,
                   buttoncolor: Color(0xFF115E38),
+
+                  // test for navbarbottom
                   onPressed: () {
-                    // Handle login logic here
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => NavbarScreen()),
+                    );
                   },
                 ),
               ),
@@ -82,7 +89,10 @@ class LoginScreen extends StatelessWidget {
                   textcolor: Color(0xFF115E38),
                   buttoncolor: Colors.white,
                   onPressed: () {
-                    // Handle login logic here
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => HomeScreen()),
+                    );
                   },
                 ),
               ),
