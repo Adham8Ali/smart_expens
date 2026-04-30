@@ -24,6 +24,7 @@ class _NavbarScreenState extends State<NavbarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       // appBar: AppBar(title: const Text('Smart Spend')),
       body: IndexedStack(index: currentIndex, children: screens),
 
@@ -43,34 +44,54 @@ class _NavbarScreenState extends State<NavbarScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       // 👇 البار اللي تحت
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        elevation: 30,
-        child: Container(
-          height: 70,
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // الجزء الشمال
-              Row(
-                children: [
-                  buildItem(Icons.home, "Home", 0),
-                  const SizedBox(width: 30),
-                  buildItem(Icons.bar_chart, "Reports", 1),
-                ],
-              ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
 
-              // الجزء اليمين
-              Row(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 15,
+              spreadRadius: 2,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(25),
+
+          child: BottomAppBar(
+            color: Colors.white,
+            shape: const CircularNotchedRectangle(),
+            notchMargin: 8,
+            elevation: 30,
+            child: Container(
+              height: 70,
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  buildItem(Icons.analytics, "ُexpenses", 2),
-                  const SizedBox(width: 30),
-                  buildItem(Icons.account_circle, "Account", 3),
+                  // الجزء الشمال
+                  Row(
+                    children: [
+                      buildItem(Icons.home, "Home", 0),
+                      const SizedBox(width: 30),
+                      buildItem(Icons.bar_chart, "Reports", 1),
+                    ],
+                  ),
+
+                  // الجزء اليمين
+                  Row(
+                    children: [
+                      buildItem(Icons.analytics, "ُexpenses", 2),
+                      const SizedBox(width: 30),
+                      buildItem(Icons.account_circle, "Account", 3),
+                    ],
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
