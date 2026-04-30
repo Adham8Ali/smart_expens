@@ -176,7 +176,7 @@ void showAddExpenseDialog(BuildContext context) {
 
                   // Category Dropdown
                   DropdownButtonFormField<String>(
-                    value: selectedCategory,
+                    initialValue: selectedCategory,
                     decoration: const InputDecoration(
                       labelText: "Category",
                       border: OutlineInputBorder(),

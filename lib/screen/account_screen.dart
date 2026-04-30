@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_expens/screen/major_screen.dart';
 import 'package:smart_expens/screen/monthly_buget_scrern.dart';
 import 'package:smart_expens/screen/presonal_details.dart';
 import 'package:smart_expens/widget/list_title.dart';
@@ -90,7 +91,10 @@ class AccountScreen extends StatelessWidget {
               text: 'Logout',
               icon: Icons.logout,
               onTap: () {
-                // Handle logout tap
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => MajorScreen()),
+                );
               },
             ),
           ],

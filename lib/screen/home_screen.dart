@@ -93,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // shoud edit
                     Text(
-                      '${monthlySpending.toStringAsFixed(2)}',
+                      monthlySpending.toStringAsFixed(2),
                       style: TextStyle(
                         fontSize: 30,
                         color: Color(0xff115E38),
@@ -128,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     // shoud edit
                     Text(
-                      '${monthlyBudget.toStringAsFixed(0)}',
+                      monthlyBudget.toStringAsFixed(0),
                       style: TextStyle(
                         fontSize: 30,
                         color: Color(0xff115E38),
@@ -188,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     // shoud edit
                     Text(
-                      '${monthlyBudget.toStringAsFixed(0)}',
+                      monthlyBudget.toStringAsFixed(0),
                       style: TextStyle(
                         fontSize: 30,
                         color: Color(0xff115E38),

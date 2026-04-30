@@ -42,10 +42,10 @@ class MajorScreen extends StatelessWidget {
                 width: double.infinity,
                 child: TextButton(
                   style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all<Color>(
+                    backgroundColor: WidgetStateProperty.all<Color>(
                       Color(0xFF115E38),
                     ),
-                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                    shape: WidgetStateProperty.all<RoundedRectangleBorder>(
                       RoundedRectangleBorder(
                         side: const BorderSide(
                           color: Color(0xff115E38), // لون الحافة
@@ -81,10 +81,10 @@ class MajorScreen extends StatelessWidget {
                 width: double.infinity,
                 child: TextButton(
                   style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all<Color>(
+                    backgroundColor: WidgetStateProperty.all<Color>(
                       Colors.white,
                     ),
-                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                    shape: WidgetStateProperty.all<RoundedRectangleBorder>(
                       RoundedRectangleBorder(
                         side: const BorderSide(
                           color: Color(0xff115E38), // لون الحافة

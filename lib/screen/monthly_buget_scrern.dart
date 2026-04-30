@@ -4,6 +4,8 @@ class MonthlyBudgetScreen extends StatelessWidget {
   final double totalBudget = 2500;
   final double currentSpending = 1847;
 
+  const MonthlyBudgetScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     double percentUsed = currentSpending / totalBudget;
@@ -53,6 +55,11 @@ class MonthlyBudgetScreen extends StatelessWidget {
                 onPressed: () {
                   // هنا تقدر تضيف منطق حفظ الميزانية
                 },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  textStyle: TextStyle(fontSize: 18),
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -60,11 +67,6 @@ class MonthlyBudgetScreen extends StatelessWidget {
                     SizedBox(width: 8),
                     Text("Save Budget", style: TextStyle(color: Colors.white)),
                   ],
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  textStyle: TextStyle(fontSize: 18),
                 ),
               ),
             ),

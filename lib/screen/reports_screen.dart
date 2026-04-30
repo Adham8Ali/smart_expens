@@ -182,8 +182,8 @@ class ReportsScreen extends StatelessWidget {
                 ),
               ),
               CustomCard(
-                child: Column(children: [Text('Report 1')]),
                 height: 500,
+                child: Column(children: [Text('Report 1')]),
               ),
             ],
           ),

@@ -17,12 +17,11 @@ class CustomButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton(
       onPressed: onPressed,
-      child: Text(text!, style: TextStyle(fontSize: 20)),
       style: ButtonStyle(
         // fixedSize: MaterialStateProperty.all(Size(150, 40)),
-        backgroundColor: MaterialStateProperty.all(buttoncolor),
-        foregroundColor: MaterialStateProperty.all(textcolor),
-        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+        backgroundColor: WidgetStateProperty.all(buttoncolor),
+        foregroundColor: WidgetStateProperty.all(textcolor),
+        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
           RoundedRectangleBorder(
             side: const BorderSide(
               color: Color(0xff115E38), // لون الحافة
@@ -32,6 +31,7 @@ class CustomButton extends StatelessWidget {
           ),
         ),
       ),
+      child: Text(text!, style: TextStyle(fontSize: 20)),
     );
   }
 }
