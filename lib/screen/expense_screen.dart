@@ -574,7 +574,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
             ? Border.all(color: Colors.grey.shade300)
             : null,
       ),
-
       child: Text(
         text,
 

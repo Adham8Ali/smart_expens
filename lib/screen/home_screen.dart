@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:smart_expens/screen/account_screen.dart';
 import 'package:smart_expens/widget/custom_card.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -70,25 +71,35 @@ class _HomeScreenState extends State<HomeScreen> {
               // container 1
               SizedBox(height: 15),
               CustomCard(
+                // height: 170,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         Text(
-                          'monthly spending',
+                          'Monthly Spending',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 21,
                             color: Color(0xff6B7280),
                             fontWeight: FontWeight.w400,
                           ),
                         ),
-                        Icon(
-                          Icons.account_balance_wallet,
-                          color: Color(0xff6B7280),
+                        Spacer(),
+
+                        CircleAvatar(
+                          radius: 25,
+                          backgroundColor: Colors.green.shade100,
+                          child: Icon(
+                            size: 30,
+                            Icons.account_balance_wallet,
+                            color: Color(0xff115E38),
+                          ),
                         ),
                       ],
                     ),
 
+                    SizedBox(height: 8),
                     // shoud edit
                     Text(
                       monthlySpending.toStringAsFixed(2),
@@ -98,14 +109,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    // shoud edit
-                    Text(
-                      '+12.5% vs last month',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xff6B7280),
-                        fontWeight: FontWeight.w400,
-                      ),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade100,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            "+12% ",
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Text("vs last month"),
+                      ],
                     ),
                   ],
                 ),
@@ -114,16 +137,20 @@ class _HomeScreenState extends State<HomeScreen> {
               // container for monthly budget
               // container 2
               CustomCard(
+                height: 210,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'monthly budget',
+                      'Monthly Budget',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 21,
                         color: Color(0xff6B7280),
                         fontWeight: FontWeight.w400,
                       ),
                     ),
+                    SizedBox(height: 8),
+
                     // shoud edit
                     Text(
                       monthlyBudget.toStringAsFixed(0),
@@ -133,11 +160,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("Used"),
-                        Text("${(progress * 100).toStringAsFixed(1)}%"),
+                        Text(
+                          "Used",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Color(0xff6B7280),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        Text(
+                          "${(progress * 100).toStringAsFixed(1)}%",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Color(0xff6B7280),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
 
@@ -157,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     SizedBox(height: 8),
                     // shoud edit
                     Text(
-                      'monthly budget',
+                      "Remaining ${monthlyBudget - monthlySpending} ",
                       style: TextStyle(
                         fontSize: 16,
                         color: Color(0xff6B7280),
@@ -174,23 +216,95 @@ class _HomeScreenState extends State<HomeScreen> {
               CustomCard(
                 height: 400,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  // crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      'monthly budget',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Color(0xff6B7280),
-                        fontWeight: FontWeight.w400,
-                      ),
+                    /// Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Spending Trend",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        /// Dropdown
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.grey),
+                          ),
+                          child: const Row(
+                            children: [
+                              Text("Last 6 Months"),
+                              Icon(Icons.keyboard_arrow_down),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    // shoud edit
-                    Text(
-                      monthlyBudget.toStringAsFixed(0),
-                      style: TextStyle(
-                        fontSize: 30,
-                        color: Color(0xff115E38),
-                        fontWeight: FontWeight.w500,
+
+                    const SizedBox(height: 20),
+
+                    /// Chart
+                    SizedBox(
+                      height: 280,
+                      child: LineChart(
+                        LineChartData(
+                          gridData: FlGridData(show: false),
+                          titlesData: FlTitlesData(
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: true),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                getTitlesWidget: (value, meta) {
+                                  const months = [
+                                    "JAN",
+                                    "FEB",
+                                    "MAR",
+                                    "APR",
+                                    "MAY",
+                                    "JUN",
+                                    "JUL",
+                                    "AUG",
+                                  ];
+                                  if (value.toInt() < 0 ||
+                                      value.toInt() >= months.length) {
+                                    return const Text("");
+                                  }
+                                  return Text(months[value.toInt()]);
+                                },
+                              ),
+                            ),
+                          ),
+                          borderData: FlBorderData(show: false),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: const [
+                                FlSpot(0, 10),
+                                FlSpot(1, 20),
+                                FlSpot(2, 45),
+                                FlSpot(3, 30),
+                                FlSpot(4, 55),
+                                FlSpot(5, 65),
+                                FlSpot(6, 85),
+                                FlSpot(7, 75),
+                              ],
+                              isCurved: true,
+                              color: Colors.green,
+                              barWidth: 3,
+                              dotData: FlDotData(show: true),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
