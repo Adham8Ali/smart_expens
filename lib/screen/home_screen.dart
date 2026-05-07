@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:smart_expens/screen/account_screen.dart';
-import 'package:smart_expens/screen/expense_screen.dart';
-import 'package:smart_expens/screen/reports_screen.dart';
 import 'package:smart_expens/widget/custom_card.dart';
 
 class HomeScreen extends StatefulWidget {
