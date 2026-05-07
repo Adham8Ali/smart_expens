@@ -41,10 +41,10 @@ class MyApp extends StatelessWidget {
           }
 
           if (snapshot.hasData) {
-            return const MajorScreen();
+            return const NavbarScreen();
           }
 
-          return const NavbarScreen();
+          return const MajorScreen();
         },
       ),
       routes: {
