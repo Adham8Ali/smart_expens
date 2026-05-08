@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
           }
 
           if (snapshot.hasData) {
-            return const NavbarScreen();
+            return const NavbarScreen(monthlyBudget: 1);
           }
 
           return const MajorScreen();
@@ -49,7 +49,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),
-        '/home': (context) => const NavbarScreen(),
+        '/home': (context) => const NavbarScreen(monthlyBudget: 1),
       },
     );
   }

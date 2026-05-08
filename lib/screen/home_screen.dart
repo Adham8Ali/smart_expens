@@ -4,7 +4,9 @@ import 'package:smart_expens/widget/custom_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.monthlyBudget});
+
+  final double monthlyBudget;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -14,8 +16,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     // Define monthly spending and budget as variables for calculation
-    double monthlySpending = 5000.00;
-    double monthlyBudget = 10000.00;
+    double monthlySpending = 3000;
+    double monthlyBudget = widget.monthlyBudget;
     double progress = monthlySpending / monthlyBudget;
 
     return Scaffold(
