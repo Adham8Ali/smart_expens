@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_expens/providers/user_provider.dart';
 import 'package:smart_expens/screen/major_screen.dart';
 import 'package:smart_expens/screen/monthly_buget_scrern.dart';
 import 'package:smart_expens/screen/presonal_details.dart';
@@ -9,6 +11,9 @@ class AccountScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final currentUser = userProvider.currentUser;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(title: Text('Account')),
@@ -21,38 +26,46 @@ class AccountScreen extends StatelessWidget {
               height: 120,
               child: Card(
                 elevation: 5,
-                // margin: const EdgeInsets.all(10),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      // backgroundImage: AssetImage('assets/images/profile.png'),
-                    ),
-                    SizedBox(width: 20),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'John Doe',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF115E38),
+                child: userProvider.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundImage: currentUser?.image != null
+                                ? NetworkImage(currentUser!.image!)
+                                : null,
+                            child: currentUser?.image == null
+                                ? const Icon(Icons.person, size: 40)
+                                : null,
                           ),
-                        ),
-                        SizedBox(height: 5),
-                        Text(
-                          'john.doe@example.com',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  currentUser?.name ?? '—',
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF115E38),
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  currentUser?.email ?? '—',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                        ],
+                      ),
               ),
             ),
             SizedBox(height: 20),
@@ -90,11 +103,23 @@ class AccountScreen extends StatelessWidget {
             CustomListTitle(
               text: 'Logout',
               icon: Icons.logout,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => MajorScreen()),
-                );
+              onTap: () async {
+                try {
+                  await userProvider.signOut();
+                  if (context.mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => MajorScreen()),
+                      (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Logout failed: $e')),
+                    );
+                  }
+                }
               },
             ),
           ],

@@ -1,8 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smart_expens/model/user_input.dart';
+import 'package:smart_expens/model/user_model.dart';
+import 'package:smart_expens/services/firestore_service.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirestoreService _firestoreService = FirestoreService();
 
   // Sign up with email and password
   Future<User?> signUpWithEmailAndPassword(UserInput user) async {
@@ -15,6 +18,19 @@ class FirebaseAuthService {
       // Update user profile with full name
       await credential.user?.updateDisplayName(user.fullName);
       await credential.user?.reload();
+
+      // Create Firestore document for the user
+      if (credential.user != null) {
+        final userModel = UserModel(
+          uid: credential.user!.uid,
+          name: user.fullName,
+          email: user.email,
+          image: credential.user?.photoURL,
+          createdAt: DateTime.now(),
+        );
+
+        await _firestoreService.createUser(userModel);
+      }
 
       return credential.user;
     } on FirebaseAuthException catch (e) {

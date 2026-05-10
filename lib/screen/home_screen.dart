@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_expens/providers/user_provider.dart';
 import 'package:smart_expens/screen/account_screen.dart';
 import 'package:smart_expens/widget/custom_card.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -15,6 +17,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final currentUser = userProvider.currentUser;
     // Define monthly spending and budget as variables for calculation
     double monthlySpending = 3000;
     double monthlyBudget = widget.monthlyBudget;
@@ -53,12 +57,14 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
 
-            icon: const CircleAvatar(
+            icon: CircleAvatar(
               radius: 30,
-              // dont forget to add image in assets and pubspec.yaml
-              backgroundImage: NetworkImage(
-                'https://www.pngplay.com/wp-content/uploads/12/User-Avatar-Profile-PNG-Free-File-Download.png',
-              ),
+              backgroundImage: currentUser?.image != null
+                  ? NetworkImage(currentUser!.image!)
+                  : null,
+              child: currentUser?.image == null
+                  ? Icon(Icons.person, size: 30)
+                  : null,
             ),
           ),
         ],

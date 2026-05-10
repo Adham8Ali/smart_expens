@@ -1,4 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_expens/models/category_model.dart';
+import 'package:smart_expens/providers/expense_provider.dart';
+import 'package:smart_expens/providers/user_provider.dart';
 import 'package:smart_expens/screen/account_screen.dart';
 import 'package:smart_expens/screen/expense_screen.dart';
 import 'package:smart_expens/screen/home_screen.dart';
@@ -135,19 +140,12 @@ class _NavbarScreenState extends State<NavbarScreen> {
 }
 
 void showAddExpenseDialog(BuildContext context) {
-  String? selectedCategory;
+  String? selectedCategoryId;
   DateTime? selectedDate;
   TextEditingController amountController = TextEditingController();
 
-  List<String> categories = [
-    "salary",
-    "food",
-    "drink",
-    "shopping",
-    "bills",
-    "health",
-    "entertainment",
-  ];
+  // Use the canonical category list — IDs match Firestore document IDs.
+  final categories = CategoryModel.predefined;
 
   showDialog(
     context: context,
@@ -182,19 +180,22 @@ void showAddExpenseDialog(BuildContext context) {
 
                   const SizedBox(height: 15),
 
-                  // Category Dropdown
+                  // Category Dropdown — value is the categoryId (e.g. "food")
                   DropdownButtonFormField<String>(
-                    initialValue: selectedCategory,
+                    initialValue: selectedCategoryId,
                     decoration: const InputDecoration(
                       labelText: "Category",
                       border: OutlineInputBorder(),
                     ),
                     items: categories.map((cat) {
-                      return DropdownMenuItem(value: cat, child: Text(cat));
+                      return DropdownMenuItem(
+                        value: cat.id,
+                        child: Text(cat.name),
+                      );
                     }).toList(),
                     onChanged: (value) {
                       setStateDialog(() {
-                        selectedCategory = value;
+                        selectedCategoryId = value;
                       });
                     },
                   ),
@@ -234,14 +235,95 @@ void showAddExpenseDialog(BuildContext context) {
 
                   const SizedBox(height: 20),
 
-                  // Button
+                  // Save Button
                   ElevatedButton(
-                    onPressed: () {
-                      print("Amount: ${amountController.text}");
-                      print("Category: $selectedCategory");
-                      print("Date: $selectedDate");
+                    onPressed: () async {
+                      // ── Validation ──────────────────────────────────────
+                      final rawAmount = amountController.text.trim();
+                      if (rawAmount.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter an amount.'),
+                          ),
+                        );
+                        return;
+                      }
+                      final amount = double.tryParse(rawAmount);
+                      if (amount == null || amount <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Enter a valid amount.'),
+                          ),
+                        );
+                        return;
+                      }
+                      if (selectedCategoryId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please select a category.'),
+                          ),
+                        );
+                        return;
+                      }
+                      if (selectedDate == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please select a date.'),
+                          ),
+                        );
+                        return;
+                      }
 
-                      Navigator.pop(context);
+                      // ── Persist ─────────────────────────────────────────
+                      // Use UserProvider uid first; fall back to FirebaseAuth
+                      // in case the provider hasn't propagated the auth state
+                      // yet (brief race-condition window on first launch).
+                      final uid =
+                          context.read<UserProvider>().currentUid ??
+                          FirebaseAuth.instance.currentUser?.uid;
+
+                      if (uid == null || uid.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Not signed in. Please log in again.',
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      final success = await context
+                          .read<ExpenseProvider>()
+                          .addExpense(
+                            uid: uid,
+                            amount: amount,
+                            categoryId: selectedCategoryId!,
+                            date: selectedDate!,
+                          );
+
+                      if (!context.mounted) return;
+
+                      if (success) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Expense added successfully!'),
+                            backgroundColor: Color(0xff115E38),
+                          ),
+                        );
+                      } else {
+                        final err = context
+                            .read<ExpenseProvider>()
+                            .errorMessage;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(err ?? 'Failed to add expense.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xff115E38),

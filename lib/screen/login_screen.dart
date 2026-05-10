@@ -1,8 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_expens/providers/user_provider.dart';
 import 'package:smart_expens/widget/CustomTextField.dart';
 import 'package:smart_expens/widget/custom_button.dart';
-import 'package:smart_expens/services/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,7 +13,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final FirebaseAuthService _authService = FirebaseAuthService();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -26,9 +26,11 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _authService.loginWithEmailAndPassword(
-        _emailController.text.trim(),
-        _passwordController.text,
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+      await userProvider.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
@@ -40,20 +42,19 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handleForgotPassword() {
+  void _handleForgotPassword() async {
     if (_emailController.text.isEmpty) {
       _showErrorDialog('Please enter your email address');
       return;
     }
 
-    _authService
-        .resetPassword(_emailController.text.trim())
-        .then((_) {
-          _showSuccessDialog('Password reset link sent to your email');
-        })
-        .catchError((e) {
-          _showErrorDialog(e.toString().replaceFirst('Exception: ', ''));
-        });
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      await userProvider.resetPassword(_emailController.text.trim());
+      _showSuccessDialog('Password reset link sent to your email');
+    } catch (e) {
+      _showErrorDialog(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   void _showErrorDialog(String message) {

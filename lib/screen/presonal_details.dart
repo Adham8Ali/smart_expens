@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_expens/providers/user_provider.dart';
 
 class PersonalDetailsScreen extends StatelessWidget {
   const PersonalDetailsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final currentUser = userProvider.currentUser;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(title: const Text('Personal Details'), centerTitle: true),
@@ -12,8 +16,8 @@ class PersonalDetailsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            buildItem('Name', 'Adham Ali', Icons.person),
-            buildItem('Email', 'adham@email.com', Icons.email),
+            buildItem('Name', currentUser?.name ?? 'Loading...', Icons.person),
+            buildItem('Email', currentUser?.email ?? 'Loading...', Icons.email),
             buildItem('Password', '********', Icons.lock),
 
             const SizedBox(height: 20),

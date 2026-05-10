@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_expens/providers/user_provider.dart';
 import 'package:smart_expens/widget/CustomTextField.dart';
 import 'package:smart_expens/widget/custom_button.dart';
-import 'package:smart_expens/services/firebase_auth.dart';
-import 'package:smart_expens/model/user_input.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -12,7 +12,6 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  final FirebaseAuthService _authService = FirebaseAuthService();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -42,13 +41,13 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      UserInput user = UserInput(
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+      await userProvider.signUp(
         fullName: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-
-      await _authService.signUpWithEmailAndPassword(user);
 
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);

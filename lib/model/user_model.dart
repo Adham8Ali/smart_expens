@@ -1,0 +1,88 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class UserModel {
+  final String uid;
+  final String name;
+  final String email;
+  final String? image;
+  final DateTime createdAt;
+
+  UserModel({
+    required this.uid,
+    required this.name,
+    required this.email,
+    this.image,
+    required this.createdAt,
+  });
+
+  /// Convert UserModel to Map for Firestore
+  Map<String, dynamic> toMap() {
+    return {
+      'uid': uid,
+      'name': name,
+      'email': email,
+      'image': image,
+      'createdAt': createdAt,
+    };
+  }
+
+  /// Create UserModel from Firestore DocumentSnapshot
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel(
+      uid: map['uid'] as String,
+      name: map['name'] as String,
+      email: map['email'] as String,
+      image: map['image'] as String?,
+      createdAt: (map['createdAt'] as Timestamp).toDate(),
+    );
+  }
+
+  /// Create UserModel from DocumentSnapshot
+  factory UserModel.fromDocument(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return UserModel.fromMap(data);
+  }
+
+  /// Create a copy of UserModel with modified fields
+  UserModel copyWith({
+    String? uid,
+    String? name,
+    String? email,
+    String? image,
+    DateTime? createdAt,
+  }) {
+    return UserModel(
+      uid: uid ?? this.uid,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      image: image ?? this.image,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'UserModel(uid: $uid, name: $name, email: $email, image: $image, createdAt: $createdAt)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is UserModel &&
+        other.uid == uid &&
+        other.name == name &&
+        other.email == email &&
+        other.image == image &&
+        other.createdAt == createdAt;
+  }
+
+  @override
+  int get hashCode {
+    return uid.hashCode ^
+        name.hashCode ^
+        email.hashCode ^
+        image.hashCode ^
+        createdAt.hashCode;
+  }
+}

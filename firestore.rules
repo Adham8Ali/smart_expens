@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Categories ──────────────────────────────────────────────────────────
+    // Top-level collection, readable by any authenticated user.
+    // Writes are blocked from the client — managed via Firebase Console only.
+    match /categories/{categoryId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // ── Users ───────────────────────────────────────────────────────────────
+    // Each user can only read/write their own profile document.
+    match /users/{uid} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == uid;
+
+      // ── Expenses sub-collection ──────────────────────────────────────────
+      // Path: users/{uid}/expenses/{expenseId}
+      match /expenses/{expenseId} {
+
+        // READ & DELETE: only the owner of the document
+        allow read, delete: if request.auth != null
+                            && request.auth.uid == uid;
+
+        // CREATE: validate required fields, correct types,
+        // and that the embedded uid matches the authenticated caller.
+        allow create: if request.auth != null
+                      && request.auth.uid == uid
+                      && request.resource.data.keys().hasAll([
+                           'id', 'uid', 'amount', 'categoryId',
+                           'date', 'createdAt'
+                         ])
+                      && request.resource.data.uid == uid
+                      && request.resource.data.amount is number
+                      && request.resource.data.amount > 0
+                      && request.resource.data.categoryId is string
+                      && request.resource.data.categoryId.size() > 0;
+
+        // UPDATE: caller must own the document and cannot change the uid.
+        allow update: if request.auth != null
+                      && request.auth.uid == uid
+                      && request.resource.data.uid == uid;
+      }
+    }
+
+  }
+}

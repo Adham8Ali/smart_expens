@@ -1,4 +1,4 @@
-# smart_expens
+# smart expens
 
 A new Flutter project.
 
