@@ -162,340 +162,329 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : errorMsg != null
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 48,
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.error_outline,
+                              color: Colors.red, size: 48),
+                          const SizedBox(height: 12),
+                          Text(errorMsg,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.red)),
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        errorMsg,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            : SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 10),
-
-                    /// HEADER
-                    Row(
-                      children: [
-                        circleBtn(Icons.receipt_long),
-                        const SizedBox(width: 15),
-                        const Expanded(
-                          child: Text(
-                            "Expense List",
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
-
-                    const SizedBox(height: 25),
-
-                    /// SEARCH
-                    Row(
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: SizedBox(
-                            height: 55,
-                            child: TextField(
-                              controller: searchController,
-                              onChanged: (_) => setState(() {}),
-                              decoration: InputDecoration(
-                                hintText: "Search expenses...",
-                                prefixIcon: const Icon(Icons.search),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        topBtn(Icons.filter_alt, () {
-                          setState(() => showFilters = !showFilters);
-                        }),
-                        const SizedBox(width: 10),
-                        topBtn(Icons.sort, showSort),
-                      ],
-                    ),
+                        const SizedBox(height: 10),
 
-                    const SizedBox(height: 25),
-
-                    /// FILTER PANEL
-                    if (showFilters)
-                      Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(25),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Column(
+                        /// HEADER
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                Icon(Icons.filter_alt, color: green),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    "Filter Expenses",
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: green,
-                                    ),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () =>
-                                      setState(() => showFilters = false),
-                                  child: circleBtn(Icons.close, 42),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-
-                            /// MIN MAX
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: field("Min Amount", minController),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: field("Max Amount", maxController),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 18),
-
-                            /// CATEGORY DROPDOWN from real predefined list
-                            DropdownButtonFormField<String>(
-                              initialValue: selectedCategoryId,
-                              decoration: InputDecoration(
-                                hintText: "Category",
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
-                                  ),
+                            circleBtn(Icons.receipt_long),
+                            const SizedBox(width: 15),
+                            const Expanded(
+                              child: Text(
+                                "Expense List",
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              items: [
-                                const DropdownMenuItem(
-                                  value: null,
-                                  child: Text("All Categories"),
-                                ),
-                                ...CategoryModel.predefined.map(
-                                  (cat) => DropdownMenuItem(
-                                    value: cat.id,
-                                    child: Text(cat.name),
-                                  ),
-                                ),
-                              ],
-                              onChanged: (value) =>
-                                  setState(() => selectedCategoryId = value),
-                            ),
-
-                            const SizedBox(height: 22),
-
-                            /// BUTTONS
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: resetFilter,
-                                    child: button(
-                                      "Reset",
-                                      Colors.white,
-                                      Colors.black,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => setState(() {}),
-                                    child: button("Apply", green, Colors.white),
-                                  ),
-                                ),
-                              ],
                             ),
                           ],
                         ),
-                      ),
 
-                    const SizedBox(height: 25),
+                        const SizedBox(height: 25),
 
-                    /// TABLE
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Container(
-                        constraints: BoxConstraints(
-                          minWidth: MediaQuery.of(context).size.width - 40,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(25),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Column(
+                        /// SEARCH
+                        Row(
                           children: [
-                            /// TABLE HEADER
-                            Container(
-                              padding: const EdgeInsets.all(15),
-                              decoration: BoxDecoration(
-                                color: green,
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(25),
-                                  topRight: Radius.circular(25),
+                            Expanded(
+                              child: SizedBox(
+                                height: 55,
+                                child: TextField(
+                                  controller: searchController,
+                                  onChanged: (_) => setState(() {}),
+                                  decoration: InputDecoration(
+                                    hintText: "Search expenses...",
+                                    prefixIcon: const Icon(Icons.search),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                      borderSide: BorderSide(
+                                          color: Colors.grey.shade300),
+                                    ),
+                                  ),
                                 ),
                               ),
-                              child: const Row(
-                                children: [
-                                  SizedBox(
-                                    width: 90,
-                                    child: Text("Date", style: _head),
-                                  ),
-                                  SizedBox(
-                                    width: 90,
-                                    child: Text("Amount", style: _head),
-                                  ),
-                                  SizedBox(
-                                    width: 110,
-                                    child: Text("Category", style: _head),
-                                  ),
-                                  SizedBox(
-                                    width: 90,
-                                    child: Align(
-                                      alignment: Alignment.centerRight,
-                                      child: Text("Note", style: _head),
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ),
+                            const SizedBox(width: 10),
+                            topBtn(Icons.filter_alt, () {
+                              setState(() => showFilters = !showFilters);
+                            }),
+                            const SizedBox(width: 10),
+                            topBtn(Icons.sort, showSort),
+                          ],
+                        ),
 
-                            /// EMPTY STATE
-                            if (filtered.isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.all(32),
-                                child: Column(
+                        const SizedBox(height: 25),
+
+                        /// FILTER PANEL
+                        if (showFilters)
+                          Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(25),
+                              border:
+                                  Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
                                   children: [
-                                    Icon(
-                                      Icons.inbox_outlined,
-                                      size: 56,
-                                      color: Colors.grey.shade400,
+                                    Icon(Icons.filter_alt, color: green),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        "Filter Expenses",
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                          color: green,
+                                        ),
+                                      ),
                                     ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      allExpenses.isEmpty
-                                          ? "No expenses yet.\nTap + to add your first one!"
-                                          : "No expenses match your filters.",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Colors.grey.shade500,
-                                        fontSize: 15,
+                                    GestureDetector(
+                                      onTap: () => setState(
+                                          () => showFilters = false),
+                                      child: circleBtn(Icons.close, 42),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 20),
+
+                                /// MIN MAX
+                                Row(
+                                  children: [
+                                    Expanded(
+                                        child:
+                                            field("Min Amount", minController)),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                        child:
+                                            field("Max Amount", maxController)),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 18),
+
+                                /// CATEGORY DROPDOWN from real predefined list
+                                DropdownButtonFormField<String>(
+                                  initialValue: selectedCategoryId,
+                                  decoration: InputDecoration(
+                                    hintText: "Category",
+                                    border: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(16)),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(16),
+                                      borderSide: BorderSide(
+                                          color: Colors.grey.shade300),
+                                    ),
+                                  ),
+                                  items: [
+                                    const DropdownMenuItem(
+                                        value: null,
+                                        child: Text("All Categories")),
+                                    ...CategoryModel.predefined.map(
+                                      (cat) => DropdownMenuItem(
+                                          value: cat.id,
+                                          child: Text(cat.name)),
+                                    ),
+                                  ],
+                                  onChanged: (value) =>
+                                      setState(() => selectedCategoryId = value),
+                                ),
+
+                                const SizedBox(height: 22),
+
+                                /// BUTTONS
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: resetFilter,
+                                        child: button(
+                                            "Reset", Colors.white, Colors.black),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () => setState(() {}),
+                                        child: button(
+                                            "Apply", green, Colors.white),
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
+                              ],
+                            ),
+                          ),
 
-                            /// DATA ROWS
-                            ...filtered.map(
-                              (e) => Container(
-                                padding: const EdgeInsets.all(15),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: Colors.grey.shade200,
+                        const SizedBox(height: 25),
+
+                        /// TABLE
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Container(
+                            constraints: BoxConstraints(
+                              minWidth:
+                                  MediaQuery.of(context).size.width - 40,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(25),
+                              border:
+                                  Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Column(
+                              children: [
+                                /// TABLE HEADER
+                                Container(
+                                  padding: const EdgeInsets.all(15),
+                                  decoration: BoxDecoration(
+                                    color: green,
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(25),
+                                      topRight: Radius.circular(25),
                                     ),
                                   ),
+                                  child: const Row(
+                                    children: [
+                                      SizedBox(
+                                          width: 90,
+                                          child: Text("Date", style: _head)),
+                                      SizedBox(
+                                          width: 90,
+                                          child:
+                                              Text("Amount", style: _head)),
+                                      SizedBox(
+                                          width: 110,
+                                          child: Text("Category",
+                                              style: _head)),
+                                      SizedBox(
+                                        width: 90,
+                                        child: Align(
+                                          alignment: Alignment.centerRight,
+                                          child: Text("Note", style: _head),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 90,
-                                      child: Text(
-                                        "${e.date.day}/${e.date.month}/${e.date.year}",
-                                        style: const TextStyle(fontSize: 13),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 90,
-                                      child: Text(
-                                        "\$${e.amount.toStringAsFixed(2)}",
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 110,
-                                      child: Text(
-                                        _categoryName(e.categoryId),
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: _categoryColor(e.categoryId),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 90,
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          e.note ?? '-',
-                                          overflow: TextOverflow.ellipsis,
+
+                                /// EMPTY STATE
+                                if (filtered.isEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.all(32),
+                                    child: Column(
+                                      children: [
+                                        Icon(Icons.inbox_outlined,
+                                            size: 56,
+                                            color: Colors.grey.shade400),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          allExpenses.isEmpty
+                                              ? "No expenses yet.\nTap + to add your first one!"
+                                              : "No expenses match your filters.",
+                                          textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontSize: 12,
+                                              color: Colors.grey.shade500,
+                                              fontSize: 15),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                /// DATA ROWS
+                                ...filtered.map(
+                                  (e) => Container(
+                                    padding: const EdgeInsets.all(15),
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        bottom: BorderSide(
+                                            color: Colors.grey.shade200),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 90,
+                                          child: Text(
+                                            "${e.date.day}/${e.date.month}/${e.date.year}",
+                                            style: const TextStyle(
+                                                fontSize: 13),
                                           ),
                                         ),
-                                      ),
+                                        SizedBox(
+                                          width: 90,
+                                          child: Text(
+                                            "\$${e.amount.toStringAsFixed(2)}",
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 110,
+                                          child: Text(
+                                            _categoryName(e.categoryId),
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color:
+                                                  _categoryColor(e.categoryId),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 90,
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: Text(
+                                              e.note ?? '-',
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                  color:
+                                                      Colors.grey.shade600,
+                                                  fontSize: 12),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
 
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
       ),
     );
   }
@@ -541,9 +530,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(16),
-        border: bg == Colors.white
-            ? Border.all(color: Colors.grey.shade300)
-            : null,
+        border: bg == Colors.white ? Border.all(color: Colors.grey.shade300) : null,
       ),
       child: Text(
         text,
