@@ -79,9 +79,7 @@ class CategoryService {
         return CategoryModel.predefined;
       }
 
-      return snapshot.docs
-          .map((d) => CategoryModel.fromMap(d.data()))
-          .toList();
+      return snapshot.docs.map((d) => CategoryModel.fromMap(d.data())).toList();
     } on FirebaseException catch (e) {
       throw _mapFirebase(e, 'getAllCategories');
     } catch (e) {
@@ -104,9 +102,10 @@ class CategoryService {
 
       if (!doc.exists) {
         // Fallback: look up in local predefined list.
-        return CategoryModel.predefined
-            .cast<CategoryModel?>()
-            .firstWhere((c) => c?.id == categoryId, orElse: () => null);
+        return CategoryModel.predefined.cast<CategoryModel?>().firstWhere(
+          (c) => c?.id == categoryId,
+          orElse: () => null,
+        );
       }
 
       return CategoryModel.fromMap(doc.data()!);
@@ -128,7 +127,120 @@ class CategoryService {
         .collection(AppConstants.categoriesCollection)
         .orderBy(FieldPath.documentId)
         .snapshots()
-        .map((snap) =>
-            snap.docs.map((d) => CategoryModel.fromMap(d.data())).toList());
+        .map(
+          (snap) =>
+              snap.docs.map((d) => CategoryModel.fromMap(d.data())).toList(),
+        );
+  }
+
+  /// Stream of user's custom categories: users/{uid}/categories
+  Stream<List<CategoryModel>> getUserCategoriesStream(String uid) {
+    return _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .collection('categories')
+        .snapshots()
+        .map(
+          (snap) =>
+              snap.docs.map((d) => CategoryModel.fromMap(d.data())).toList(),
+        );
+  }
+
+  // ─── User Category Management ──────────────────────────────────────────────
+
+  /// Add a new custom category for user [uid]
+  Future<String> addUserCategory({
+    required String uid,
+    required String name,
+  }) async {
+    try {
+      debugPrint('📝 CategoryService.addUserCategory → uid=$uid name=$name');
+      final categoryId = _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(uid)
+          .collection('categories')
+          .doc()
+          .id;
+
+      final category = CategoryModel(id: categoryId, name: name);
+
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(uid)
+          .collection('categories')
+          .doc(categoryId)
+          .set(category.toMap());
+
+      debugPrint('✅ CategoryService.addUserCategory done → id=$categoryId');
+      return categoryId;
+    } on FirebaseException catch (e) {
+      throw _mapFirebase(e, 'addUserCategory');
+    } catch (e) {
+      debugPrint('💥 CategoryService.addUserCategory unexpected: $e');
+      throw AppException(
+        message: AppException.messageFor(AppErrorCode.unknown),
+        code: AppErrorCode.unknown,
+        cause: e,
+      );
+    }
+  }
+
+  /// Update an existing custom category for user [uid]
+  Future<void> updateUserCategory({
+    required String uid,
+    required String categoryId,
+    required String newName,
+  }) async {
+    try {
+      debugPrint(
+        '✏️ CategoryService.updateUserCategory → uid=$uid id=$categoryId name=$newName',
+      );
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(uid)
+          .collection('categories')
+          .doc(categoryId)
+          .update({'name': newName});
+
+      debugPrint('✅ CategoryService.updateUserCategory done → id=$categoryId');
+    } on FirebaseException catch (e) {
+      throw _mapFirebase(e, 'updateUserCategory');
+    } catch (e) {
+      debugPrint('💥 CategoryService.updateUserCategory unexpected: $e');
+      throw AppException(
+        message: AppException.messageFor(AppErrorCode.unknown),
+        code: AppErrorCode.unknown,
+        cause: e,
+      );
+    }
+  }
+
+  /// Delete a custom category for user [uid]
+  Future<void> deleteUserCategory({
+    required String uid,
+    required String categoryId,
+  }) async {
+    try {
+      debugPrint(
+        '🗑️ CategoryService.deleteUserCategory → uid=$uid id=$categoryId',
+      );
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(uid)
+          .collection('categories')
+          .doc(categoryId)
+          .delete();
+
+      debugPrint('✅ CategoryService.deleteUserCategory done → id=$categoryId');
+    } on FirebaseException catch (e) {
+      throw _mapFirebase(e, 'deleteUserCategory');
+    } catch (e) {
+      debugPrint('💥 CategoryService.deleteUserCategory unexpected: $e');
+      throw AppException(
+        message: AppException.messageFor(AppErrorCode.unknown),
+        code: AppErrorCode.unknown,
+        cause: e,
+      );
+    }
   }
 }
