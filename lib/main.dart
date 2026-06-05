@@ -5,14 +5,16 @@ import 'package:provider/provider.dart';
 import 'package:smart_expens/firebase_options.dart';
 import 'package:smart_expens/providers/expense_provider.dart';
 import 'package:smart_expens/providers/user_provider.dart';
-import 'package:smart_expens/screen/login_screen.dart';
-import 'package:smart_expens/screen/major_screen.dart';
-import 'package:smart_expens/screen/navBar_screen.dart';
-import 'package:smart_expens/screen/signup_screen.dart';
+import 'package:smart_expens/screens/login_screen.dart';
+import 'package:smart_expens/widgets/expense_listener.dart';
+import 'package:smart_expens/screens/major_screen.dart';
+import 'package:smart_expens/screens/navBar_screen.dart';
+import 'package:smart_expens/screens/signup_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(const MyApp());
 }
 
@@ -40,30 +42,18 @@ class MyApp extends StatelessWidget {
         home: StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (context, snapshot) {
-            // ── Waiting for auth state ──────────────────────────────────────
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               );
             }
 
-            final user = snapshot.data;
-
-            if (user != null) {
-              // ── User is signed in → start the expense stream ──────────────
-              // addPostFrameCallback ensures we never call notifyListeners()
-              // during a build phase (which would throw an assertion error).
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                context.read<ExpenseProvider>().startListening(user.uid);
-              });
-              return const NavbarScreen(monthlyBudget: 1);
+            if (snapshot.hasData) {
+              return const ExpenseListener(
+                child: NavbarScreen(monthlyBudget: 1),
+              );
             }
 
-            // ── User signed out → stop stream and clear local state ─────────
-            // Also wrapped in addPostFrameCallback for the same reason.
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              context.read<ExpenseProvider>().stopListening();
-            });
             return const MajorScreen();
           },
         ),

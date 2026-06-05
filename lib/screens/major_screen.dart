@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:smart_expens/screen/login_screen.dart';
-import 'package:smart_expens/screen/signup_screen.dart';
+import 'package:smart_expens/screens/login_screen.dart';
+import 'package:smart_expens/screens/signup_screen.dart' ;
 
 class MajorScreen extends StatelessWidget {
   const MajorScreen({super.key});

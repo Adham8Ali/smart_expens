@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_expens/providers/user_provider.dart';
-import 'package:smart_expens/widget/CustomTextField.dart';
-import 'package:smart_expens/widget/custom_button.dart';
+import 'package:smart_expens/widgets/CustomTextField.dart';
+import 'package:smart_expens/widgets/custom_button.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -19,22 +20,59 @@ class _SignupScreenState extends State<SignupScreen> {
       TextEditingController();
   bool _isLoading = false;
 
+  /// Validate email format
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    return emailRegex.hasMatch(email.trim());
+  }
+
+  /// Validate all inputs
+  String? _validateInputs() {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    if (name.isEmpty) {
+      return 'Please enter your full name';
+    }
+
+    if (name.length < 3) {
+      return 'Full name must be at least 3 characters';
+    }
+
+    if (email.isEmpty) {
+      return 'Please enter your email address';
+    }
+
+    if (!_isValidEmail(email)) {
+      return 'Please enter a valid email address';
+    }
+
+    if (password.isEmpty) {
+      return 'Please enter a password';
+    }
+
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+
+    if (confirmPassword.isEmpty) {
+      return 'Please confirm your password';
+    }
+
+    if (password != confirmPassword) {
+      return 'Passwords do not match';
+    }
+
+    return null;
+  }
+
   void _handleSignup() async {
-    if (_nameController.text.isEmpty ||
-        _emailController.text.isEmpty ||
-        _passwordController.text.isEmpty ||
-        _confirmPasswordController.text.isEmpty) {
-      _showErrorDialog('Please fill in all fields');
-      return;
-    }
-
-    if (_passwordController.text != _confirmPasswordController.text) {
-      _showErrorDialog('Passwords do not match');
-      return;
-    }
-
-    if (_passwordController.text.length < 6) {
-      _showErrorDialog('Password must be at least 6 characters');
+    // Validate inputs first
+    final validationError = _validateInputs();
+    if (validationError != null) {
+      _showErrorDialog(validationError);
       return;
     }
 
@@ -43,17 +81,34 @@ class _SignupScreenState extends State<SignupScreen> {
     try {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
 
+      print('🔵 Signup Screen: Attempting to signup');
+
       await userProvider.signUp(
         fullName: _nameController.text.trim(),
         email: _emailController.text.trim(),
-        password: _passwordController.text,
+        password: _passwordController.text.trim(),
       );
 
+      print('✅ Signup Screen: Signup successful');
+
       if (mounted) {
+        // Clear fields on success
+        _nameController.clear();
+        _emailController.clear();
+        _passwordController.clear();
+        _confirmPasswordController.clear();
+
         Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       }
     } catch (e) {
-      _showErrorDialog(e.toString().replaceFirst('Exception: ', ''));
+      final errorMessage = e.toString();
+      print('🔴 Signup Screen: Signup error: $errorMessage');
+
+      if (mounted) {
+        _showErrorDialog(
+          errorMessage.replaceFirst('Exception: ', ''),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -63,7 +118,7 @@ class _SignupScreenState extends State<SignupScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Error'),
+        title: const Text('⚠️ Error'),
         content: Text(message),
         actions: [
           TextButton(
@@ -107,9 +162,17 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
+                      const Text(
+                        'Join Smart Spend to manage your expenses easily',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 30),
                       CustomTextfield(
                         controller: _nameController,
-                        hintText: 'full name',
+                        hintText: 'Full Name',
                         icon: Icons.person,
                         keypadType: TextInputType.name,
                       ),
@@ -124,7 +187,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       CustomTextfield(
                         controller: _passwordController,
                         obscureText: true,
-                        hintText: 'Password',
+                        hintText: 'Password (minimum 6 characters)',
                         icon: Icons.lock,
                         keypadType: TextInputType.visiblePassword,
                       ),
@@ -140,7 +203,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: CustomButton(
-                          text: 'Create an account',
+                          text: 'Create Account',
                           textcolor: Colors.white,
                           buttoncolor: const Color(0xFF115E38),
                           onPressed: _handleSignup,
@@ -173,25 +236,36 @@ class _SignupScreenState extends State<SignupScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: CustomButton(
-                          text: 'Continue with Google',
+                          text: 'Sign up with Google',
                           textcolor: const Color(0xFF115E38),
                           buttoncolor: Colors.white,
                           onPressed: () {
-                            // TODO: Implement Google signup
+                            _showErrorDialog('Google Sign-In coming soon!\n\nFor now, please use email/password authentication.');
+                            // TODO: Implement Google Sign-Up
                           },
                         ),
                       ),
                       const SizedBox(height: 20),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text(
-                          'Already have an account? Login',
-                          style: TextStyle(
-                            color: Color(0xFF115E38),
-                            fontWeight: FontWeight.bold,
+                      RichText(
+                        text: TextSpan(
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
                           ),
+                          children: [
+                            const TextSpan(text: 'Already have an account? '),
+                            TextSpan(
+                              text: 'Login here',
+                              style: const TextStyle(
+                                color: Color(0xFF115E38),
+                                fontWeight: FontWeight.bold,
+                              ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () {
+                                  Navigator.pushNamed(context, '/login');
+                                },
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 30),
@@ -203,3 +277,4 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 }
+

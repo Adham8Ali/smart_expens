@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:smart_expens/widget/custom_card.dart';
+import 'package:smart_expens/widgets/custom_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class ReportsScreen extends StatelessWidget {

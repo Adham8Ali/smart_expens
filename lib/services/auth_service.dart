@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:smart_expens/model/user_input.dart';
-import 'package:smart_expens/model/user_model.dart';
+import 'package:smart_expens/models/user_input.dart';
+import 'package:smart_expens/models/user_model.dart';
 import 'package:smart_expens/services/firebase_auth.dart';
 import 'package:smart_expens/services/firestore_service.dart';
 
@@ -12,7 +12,9 @@ class AuthService {
 
   /// Sign up with email and password and automatically create Firestore document
   Future<User> signUp(UserInput user) async {
-    final authUser = await _firebaseAuthService.signUpWithEmailAndPassword(user);
+    final authUser = await _firebaseAuthService.signUpWithEmailAndPassword(
+      user,
+    );
     if (authUser == null) {
       throw Exception('Failed to create user account');
     }
@@ -21,7 +23,10 @@ class AuthService {
 
   /// Login with email and password
   Future<User> login(String email, String password) async {
-    final authUser = await _firebaseAuthService.loginWithEmailAndPassword(email, password);
+    final authUser = await _firebaseAuthService.loginWithEmailAndPassword(
+      email,
+      password,
+    );
     if (authUser == null) {
       throw Exception('Failed to login');
     }
@@ -70,7 +75,7 @@ class AuthService {
       final Map<String, dynamic> updates = {};
       if (displayName != null) updates['name'] = displayName;
       if (photoURL != null) updates['image'] = photoURL;
-      
+
       await _firestoreService.updateUserFields(uid, updates);
     }
   }
@@ -80,4 +85,9 @@ class AuthService {
 
   /// Get current user's UID
   String? get currentUid => _firebaseAuthService.getCurrentUser()?.uid;
+
+  /// Force refresh of current user
+  Future<void> refreshCurrentUser() async {
+    await _firebaseAuthService.refreshCurrentUser();
+  }
 }
