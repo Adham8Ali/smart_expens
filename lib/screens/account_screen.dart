@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_expens/providers/user_provider.dart';
+import 'package:smart_expens/screens/category_management_screen.dart';
 import 'package:smart_expens/screens/major_screen.dart';
 import 'package:smart_expens/screens/monthly_buget_scrern.dart';
 import 'package:smart_expens/screens/presonal_details.dart';
@@ -85,7 +86,12 @@ class AccountScreen extends StatelessWidget {
               text: 'Category Management',
               icon: Icons.category,
               onTap: () {
-                // Handle category management tap
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CategoryManagementScreen(),
+                  ),
+                );
               },
             ),
             CustomListTitle(

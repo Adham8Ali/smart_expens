@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_expens/firebase_options.dart';
+import 'package:smart_expens/providers/category_provider.dart';
 import 'package:smart_expens/providers/expense_provider.dart';
 import 'package:smart_expens/providers/user_provider.dart';
 import 'package:smart_expens/screens/login_screen.dart';
@@ -27,6 +28,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+        ChangeNotifierProvider(create: (_) => CategoryProvider()),
       ],
       child: MaterialApp(
         title: 'Smart Spend',
