@@ -20,12 +20,11 @@ service cloud.firestore {
       // Path: users/{uid}/expenses/{expenseId}
       match /expenses/{expenseId} {
 
-        // READ & DELETE: only the owner of the document
+        // READ & DELETE: only the owner of the document (path-based access)
         allow read, delete: if request.auth != null
                             && request.auth.uid == uid;
 
-        // CREATE: validate required fields, correct types,
-        // and that the embedded uid matches the authenticated caller.
+        // CREATE: validate required fields, correct types, and ownership.
         allow create: if request.auth != null
                       && request.auth.uid == uid
                       && request.resource.data.keys().hasAll([
@@ -33,15 +32,18 @@ service cloud.firestore {
                            'date', 'createdAt'
                          ])
                       && request.resource.data.uid == uid
+                      && request.resource.data.id is string
                       && request.resource.data.amount is number
                       && request.resource.data.amount > 0
                       && request.resource.data.categoryId is string
-                      && request.resource.data.categoryId.size() > 0;
+                      && request.resource.data.categoryId.size() > 0
+                      && request.resource.data.date is timestamp
+                      && request.resource.data.createdAt is timestamp;
 
-        // UPDATE: caller must own the document and cannot change the uid.
+        // UPDATE: caller must own the EXISTING document and cannot change uid.
         allow update: if request.auth != null
-                      && request.auth.uid == uid
-                      && request.resource.data.uid == uid;
+                      && resource.data.uid == uid
+                      && request.resource.data.uid == resource.data.uid;
       }
     }
 

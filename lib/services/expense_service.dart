@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:smart_expens/core/constants/app_constants.dart';
@@ -25,9 +24,7 @@ class ExpenseService {
 
   /// Converts a [FirebaseException] into a typed [AppException] and logs it.
   AppException _mapFirebase(FirebaseException e, String operation) {
-    debugPrint(
-      '🔥 ExpenseService[$operation] code=${e.code} msg=${e.message}',
-    );
+    debugPrint(' ExpenseService[$operation] code=${e.code} msg=${e.message}');
     final code = AppException.codeFromFirestore(e.code);
     return AppException(
       message: AppException.messageFor(code),
@@ -51,7 +48,7 @@ class ExpenseService {
   }) async {
     try {
       debugPrint(
-        '📝 ExpenseService.addExpense → uid=$uid '
+        ' ExpenseService.addExpense → uid=$uid '
         'amount=$amount categoryId=$categoryId',
       );
 
@@ -67,12 +64,12 @@ class ExpenseService {
       );
 
       await docRef.set(expense.toMap());
-      debugPrint('✅ ExpenseService.addExpense done → id=${docRef.id}');
+      debugPrint(' ExpenseService.addExpense done → id=${docRef.id}');
       return docRef.id;
     } on FirebaseException catch (e) {
       throw _mapFirebase(e, 'addExpense');
     } catch (e) {
-      debugPrint('💥 ExpenseService.addExpense unexpected: $e');
+      debugPrint(' ExpenseService.addExpense unexpected: $e');
       throw AppException(
         message: AppException.messageFor(AppErrorCode.unknown),
         code: AppErrorCode.unknown,
@@ -99,20 +96,20 @@ class ExpenseService {
       if (note != null) fields['note'] = note;
 
       if (fields.isEmpty) {
-        debugPrint('⏭️  ExpenseService.updateExpense: nothing to update.');
+        debugPrint('  ExpenseService.updateExpense: nothing to update.');
         return;
       }
 
       debugPrint(
-        '📝 ExpenseService.updateExpense → uid=$uid id=$expenseId '
+        'ExpenseService.updateExpense → uid=$uid id=$expenseId '
         'fields=${fields.keys.toList()}',
       );
       await _col(uid).doc(expenseId).update(fields);
-      debugPrint('✅ ExpenseService.updateExpense done → id=$expenseId');
+      debugPrint(' ExpenseService.updateExpense done → id=$expenseId');
     } on FirebaseException catch (e) {
       throw _mapFirebase(e, 'updateExpense');
     } catch (e) {
-      debugPrint('💥 ExpenseService.updateExpense unexpected: $e');
+      debugPrint(' ExpenseService.updateExpense unexpected: $e');
       throw AppException(
         message: AppException.messageFor(AppErrorCode.unknown),
         code: AppErrorCode.unknown,
@@ -127,15 +124,13 @@ class ExpenseService {
     required String expenseId,
   }) async {
     try {
-      debugPrint(
-        '🗑️  ExpenseService.deleteExpense → uid=$uid id=$expenseId',
-      );
+      debugPrint(' ExpenseService.deleteExpense → uid=$uid id=$expenseId');
       await _col(uid).doc(expenseId).delete();
-      debugPrint('✅ ExpenseService.deleteExpense done → id=$expenseId');
+      debugPrint(' ExpenseService.deleteExpense done → id=$expenseId');
     } on FirebaseException catch (e) {
       throw _mapFirebase(e, 'deleteExpense');
     } catch (e) {
-      debugPrint('💥 ExpenseService.deleteExpense unexpected: $e');
+      debugPrint(' ExpenseService.deleteExpense unexpected: $e');
       throw AppException(
         message: AppException.messageFor(AppErrorCode.unknown),
         code: AppErrorCode.unknown,
@@ -150,16 +145,16 @@ class ExpenseService {
   Future<List<ExpenseModel>> getAllExpenses(String uid) async {
     try {
       debugPrint('📖 ExpenseService.getAllExpenses → uid=$uid');
-      final snapshot =
-          await _col(uid).orderBy('date', descending: true).get();
-      final list =
-          snapshot.docs.map((d) => ExpenseModel.fromMap(d.data())).toList();
-      debugPrint('✅ ExpenseService.getAllExpenses → ${list.length} docs');
+      final snapshot = await _col(uid).orderBy('date', descending: true).get();
+      final list = snapshot.docs
+          .map((d) => ExpenseModel.fromMap(d.data()))
+          .toList();
+      debugPrint(' ExpenseService.getAllExpenses → ${list.length} docs');
       return list;
     } on FirebaseException catch (e) {
       throw _mapFirebase(e, 'getAllExpenses');
     } catch (e) {
-      debugPrint('💥 ExpenseService.getAllExpenses unexpected: $e');
+      debugPrint(' ExpenseService.getAllExpenses unexpected: $e');
       throw AppException(
         message: AppException.messageFor(AppErrorCode.unknown),
         code: AppErrorCode.unknown,
@@ -173,22 +168,24 @@ class ExpenseService {
   /// Errors from Firestore (e.g. permission-denied) are re-emitted as
   /// [AppException] so the provider can display a typed error message.
   Stream<List<ExpenseModel>> expensesStream(String uid) {
-    debugPrint('👂 ExpenseService.expensesStream → uid=$uid');
+    debugPrint('ExpenseService.expensesStream → uid=$uid');
     return _col(uid)
         .orderBy('date', descending: true)
         .snapshots()
-        .map((snap) =>
-            snap.docs.map((d) => ExpenseModel.fromMap(d.data())).toList())
+        .map(
+          (snap) =>
+              snap.docs.map((d) => ExpenseModel.fromMap(d.data())).toList(),
+        )
         .handleError((Object error) {
-      if (error is FirebaseException) {
-        throw _mapFirebase(error, 'expensesStream');
-      }
-      throw AppException(
-        message: AppException.messageFor(AppErrorCode.unknown),
-        code: AppErrorCode.unknown,
-        cause: error,
-      );
-    });
+          if (error is FirebaseException) {
+            throw _mapFirebase(error, 'expensesStream');
+          }
+          throw AppException(
+            message: AppException.messageFor(AppErrorCode.unknown),
+            code: AppErrorCode.unknown,
+            cause: error,
+          );
+        });
   }
 
   /// Real-time stream of expenses for [uid] filtered to a specific [month].
@@ -197,8 +194,11 @@ class ExpenseService {
     required DateTime month,
   }) {
     final start = DateTime(month.year, month.month, 1);
-    final end = DateTime(month.year, month.month + 1, 1)
-        .subtract(const Duration(milliseconds: 1));
+    final end = DateTime(
+      month.year,
+      month.month + 1,
+      1,
+    ).subtract(const Duration(milliseconds: 1));
 
     debugPrint(
       '👂 ExpenseService.expensesStreamForMonth → uid=$uid '
@@ -213,17 +213,19 @@ class ExpenseService {
         )
         .orderBy('date', descending: true)
         .snapshots()
-        .map((snap) =>
-            snap.docs.map((d) => ExpenseModel.fromMap(d.data())).toList())
+        .map(
+          (snap) =>
+              snap.docs.map((d) => ExpenseModel.fromMap(d.data())).toList(),
+        )
         .handleError((Object error) {
-      if (error is FirebaseException) {
-        throw _mapFirebase(error, 'expensesStreamForMonth');
-      }
-      throw AppException(
-        message: AppException.messageFor(AppErrorCode.unknown),
-        code: AppErrorCode.unknown,
-        cause: error,
-      );
-    });
+          if (error is FirebaseException) {
+            throw _mapFirebase(error, 'expensesStreamForMonth');
+          }
+          throw AppException(
+            message: AppException.messageFor(AppErrorCode.unknown),
+            code: AppErrorCode.unknown,
+            cause: error,
+          );
+        });
   }
 }

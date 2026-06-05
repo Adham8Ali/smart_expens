@@ -4,10 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:smart_expens/models/category_model.dart';
 import 'package:smart_expens/providers/expense_provider.dart';
 import 'package:smart_expens/providers/user_provider.dart';
-import 'package:smart_expens/screen/account_screen.dart';
-import 'package:smart_expens/screen/expense_screen.dart';
-import 'package:smart_expens/screen/home_screen.dart';
-import 'package:smart_expens/screen/reports_screen.dart';
+import 'package:smart_expens/screens/account_screen.dart';
+import 'package:smart_expens/screens/expense_screen.dart';
+import 'package:smart_expens/screens/home_screen.dart';
+import 'package:smart_expens/screens/reports_screen.dart';
 
 class NavbarScreen extends StatefulWidget {
   const NavbarScreen({super.key, required this.monthlyBudget});
@@ -64,7 +64,7 @@ class _NavbarScreenState extends State<NavbarScreen> {
 
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 15,
               spreadRadius: 2,
               offset: const Offset(0, 5),

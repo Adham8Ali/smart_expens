@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_expens/providers/user_provider.dart';
-import 'package:smart_expens/screen/major_screen.dart';
-import 'package:smart_expens/screen/monthly_buget_scrern.dart';
-import 'package:smart_expens/screen/presonal_details.dart';
-import 'package:smart_expens/widget/list_title.dart';
+import 'package:smart_expens/screens/major_screen.dart';
+import 'package:smart_expens/screens/monthly_buget_scrern.dart';
+import 'package:smart_expens/screens/presonal_details.dart';
+import 'package:smart_expens/widgets/list_title.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});

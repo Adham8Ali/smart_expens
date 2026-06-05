@@ -17,10 +17,14 @@ class ExpenseProvider with ChangeNotifier {
   /// Active Firestore stream subscription. Stored so it can be cancelled.
   StreamSubscription<List<ExpenseModel>>? _subscription;
 
+  /// UID currently subscribed to — used to reconnect after stream errors.
+  String? _activeUid;
+
   // ─── State ────────────────────────────────────────────────────────────────
 
   List<ExpenseModel> _expenses = [];
   bool _isLoading = false;
+  bool _isSubmitting = false;
   String? _errorMessage;
   AppErrorCode? _errorCode;
 
@@ -28,6 +32,7 @@ class ExpenseProvider with ChangeNotifier {
 
   List<ExpenseModel> get expenses => List.unmodifiable(_expenses);
   bool get isLoading => _isLoading;
+  bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
 
   /// Typed error code — lets the UI react differently to permission-denied
@@ -57,7 +62,11 @@ class ExpenseProvider with ChangeNotifier {
   ///
   /// Any existing subscription is cancelled first, preventing duplicate
   /// listeners on hot-reload or repeated auth-state changes.
-  void startListening(String uid) {
+  void startListening(String uid) => _startListeningInternal(uid, silent: false);
+
+  /// Internal implementation that separates first-start (shows spinner) from
+  /// silent reconnects (keeps existing data visible while reconnecting).
+  void _startListeningInternal(String uid, {required bool silent}) {
     // ── Guard: abort if uid is empty ───────────────────────────────────────
     if (uid.isEmpty) {
       debugPrint('⚠️  ExpenseProvider.startListening: uid is empty, abort.');
@@ -67,13 +76,21 @@ class ExpenseProvider with ChangeNotifier {
     // ── Cancel any orphaned subscription before creating a new one ─────────
     _subscription?.cancel();
     _subscription = null;
+    _activeUid = uid;
 
-    _isLoading = true;
+    // Only show a loading spinner on the very first subscription.
+    // During silent reconnects we keep whatever data is already in _expenses
+    // so the table stays visible instead of flashing a spinner.
+    if (!silent) {
+      _isLoading = true;
+    }
     _errorMessage = null;
     _errorCode = null;
     notifyListeners();
 
-    debugPrint('👂 ExpenseProvider.startListening → uid=$uid');
+    debugPrint(
+      '👂 ExpenseProvider.startListening → uid=$uid${silent ? " (reconnect)" : ""}',
+    );
 
     _subscription = _service
         .expensesStream(uid)
@@ -90,23 +107,37 @@ class ExpenseProvider with ChangeNotifier {
           },
           onError: (Object error) {
             _isLoading = false;
-            _expenses = [];
 
             if (error is AppException) {
               _errorMessage = error.message;
               _errorCode = error.code;
               debugPrint(
-                ' ExpenseProvider stream error [${error.code.name}]: '
+                '⚠️  ExpenseProvider stream error [${error.code.name}]: '
                 '${error.message}',
               );
             } else {
               _errorMessage = AppException.messageFor(AppErrorCode.unknown);
               _errorCode = AppErrorCode.unknown;
-              debugPrint(' ExpenseProvider stream unexpected error: $error');
+              debugPrint('⚠️  ExpenseProvider stream unexpected error: $error');
             }
 
             notifyListeners();
+
+            // Firestore watch streams can close with INTERNAL errors; reconnect
+            // silently so the existing expense list stays visible.
+            final activeUid = _activeUid;
+            if (activeUid != null && activeUid.isNotEmpty) {
+              Future.delayed(const Duration(seconds: 2), () {
+                if (_activeUid == activeUid) {
+                  debugPrint(
+                    '🔄 ExpenseProvider: reconnecting stream for uid=$activeUid',
+                  );
+                  _startListeningInternal(activeUid, silent: true);
+                }
+              });
+            }
           },
+          cancelOnError: false,
         );
   }
 
@@ -117,6 +148,7 @@ class ExpenseProvider with ChangeNotifier {
     debugPrint(' ExpenseProvider.stopListening');
     _subscription?.cancel();
     _subscription = null;
+    _activeUid = null;
     _expenses = [];
     _isLoading = false;
     _errorMessage = null;
@@ -160,7 +192,7 @@ class ExpenseProvider with ChangeNotifier {
     }
 
     try {
-      _isLoading = true;
+      _isSubmitting = true;
       _errorMessage = null;
       _errorCode = null;
       notifyListeners();
@@ -186,7 +218,7 @@ class ExpenseProvider with ChangeNotifier {
       debugPrint(' ExpenseProvider.addExpense unexpected: $e');
       return false;
     } finally {
-      _isLoading = false;
+      _isSubmitting = false;
       notifyListeners();
     }
   }
@@ -201,7 +233,7 @@ class ExpenseProvider with ChangeNotifier {
     String? note,
   }) async {
     try {
-      _isLoading = true;
+      _isSubmitting = true;
       _errorMessage = null;
       _errorCode = null;
       notifyListeners();
@@ -226,7 +258,7 @@ class ExpenseProvider with ChangeNotifier {
       debugPrint('ExpenseProvider.updateExpense unexpected: $e');
       return false;
     } finally {
-      _isLoading = false;
+      _isSubmitting = false;
       notifyListeners();
     }
   }
@@ -237,7 +269,7 @@ class ExpenseProvider with ChangeNotifier {
     required String expenseId,
   }) async {
     try {
-      _isLoading = true;
+      _isSubmitting = true;
       _errorMessage = null;
       _errorCode = null;
       notifyListeners();
@@ -255,7 +287,7 @@ class ExpenseProvider with ChangeNotifier {
       debugPrint(' ExpenseProvider.deleteExpense unexpected: $e');
       return false;
     } finally {
-      _isLoading = false;
+      _isSubmitting = false;
       notifyListeners();
     }
   }
