@@ -224,7 +224,8 @@ class ExpenseProvider with ChangeNotifier {
   }
 
   /// Updates an existing expense. Returns `true` on success.
-  Future<bool> updateExpense({
+  Future<bool> updateExpense(
+    ExpenseModel copyWith, {
     required String uid,
     required String expenseId,
     double? amount,
@@ -264,7 +265,8 @@ class ExpenseProvider with ChangeNotifier {
   }
 
   /// Deletes an expense. Returns `true` on success.
-  Future<bool> deleteExpense({
+  Future<bool> deleteExpense(
+    String id, {
     required String uid,
     required String expenseId,
   }) async {
