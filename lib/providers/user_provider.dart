@@ -248,11 +248,89 @@ class UserProvider with ChangeNotifier {
     }
   }
 
+  /// Update user email
+  Future<void> updateEmail(String email) async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      if (_authUser == null) {
+        throw Exception('No authenticated user');
+      }
+
+      print('🔵 Updating email for user: ${_authUser!.uid}');
+
+      await _authService.updateEmail(uid: _authUser!.uid, email: email);
+
+      await _fetchUserData(_authUser!.uid);
+
+      print('✅ Email updated successfully');
+    } catch (e) {
+      print('🔴 Error updating email: $e');
+      _errorMessage = e.toString();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Update user password
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      if (_authUser == null) {
+        throw Exception('No authenticated user');
+      }
+
+      print('🔵 Updating password for user: ${_authUser!.uid}');
+
+      await _authService.updatePassword(newPassword: newPassword);
+
+      print('✅ Password updated successfully');
+    } catch (e) {
+      print('🔴 Error updating password: $e');
+      _errorMessage = e.toString();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Refresh user data from Firestore
   Future<void> refreshUserData() async {
     if (_authUser != null) {
       print('🔵 Refreshing user data for: ${_authUser!.uid}');
       await _fetchUserData(_authUser!.uid);
+    }
+  }
+
+  /// Set the user's monthly budget (persist to Firestore)
+  Future<void> setMonthlyBudget(double budget) async {
+    if (_authUser == null) throw Exception('No authenticated user');
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      await _firestoreService.updateUserFields(_authUser!.uid, {
+        'monthlyBudget': budget,
+      });
+
+      // Update local model optimistically
+      if (_currentUser != null) {
+        _currentUser = _currentUser!.copyWith(monthlyBudget: budget);
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

@@ -14,6 +14,8 @@ import 'package:smart_expens/screens/signup_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase Initialization
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const MyApp());
@@ -51,9 +53,7 @@ class MyApp extends StatelessWidget {
             }
 
             if (snapshot.hasData) {
-              return const ExpenseListener(
-                child: NavbarScreen(monthlyBudget: 1),
-              );
+              return const ExpenseListener(child: NavbarScreen());
             }
 
             return const MajorScreen();
@@ -62,7 +62,7 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (context) => const LoginScreen(),
           '/signup': (context) => const SignupScreen(),
-          '/home': (context) => const NavbarScreen(monthlyBudget: 1),
+          '/home': (context) => const NavbarScreen(),
         },
       ),
     );

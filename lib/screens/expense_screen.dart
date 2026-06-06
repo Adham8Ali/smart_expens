@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:smart_expens/models/category_model.dart';
 import 'package:smart_expens/models/expense_model.dart';
 import 'package:smart_expens/providers/expense_provider.dart';
+import 'package:intl/intl.dart';
 
 class ExpenseScreen extends StatefulWidget {
   const ExpenseScreen({super.key});
@@ -31,41 +32,37 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     super.dispose();
   }
 
-  /// Filter & sort the live provider list on-the-fly
   List<ExpenseModel> _applyFilters(List<ExpenseModel> source) {
     List<ExpenseModel> result = List.from(source);
 
-    // SEARCH by categoryId name
     if (searchController.text.isNotEmpty) {
       final query = searchController.text.toLowerCase();
       result = result.where((e) {
         final catName = _categoryName(e.categoryId).toLowerCase();
-        return catName.contains(query);
+        return catName.contains(query) ||
+            (e.note?.toLowerCase().contains(query) ?? false);
       }).toList();
     }
 
-    // CATEGORY filter
     if (selectedCategoryId != null) {
       result = result.where((e) => e.categoryId == selectedCategoryId).toList();
     }
 
-    // MIN amount
     if (minController.text.isNotEmpty) {
       final min = double.tryParse(minController.text);
       if (min != null) result = result.where((e) => e.amount >= min).toList();
     }
-
-    // MAX amount
     if (maxController.text.isNotEmpty) {
       final max = double.tryParse(maxController.text);
       if (max != null) result = result.where((e) => e.amount <= max).toList();
     }
 
-    // SORT
     if (sortType == "high") {
       result.sort((a, b) => b.amount.compareTo(a.amount));
     } else if (sortType == "low") {
       result.sort((a, b) => a.amount.compareTo(b.amount));
+    } else {
+      result.sort((a, b) => b.date.compareTo(a.date));
     }
 
     return result;
@@ -87,389 +84,490 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       'health': Colors.teal,
       'transport': Colors.blue,
       'entertainment': Colors.pink,
-      'other': Colors.grey,
+      'drink': Colors.cyan,
     };
     return colors[id] ?? Colors.grey;
   }
 
-  /// RESET
-  void resetFilter() {
-    setState(() {
-      searchController.clear();
-      minController.clear();
-      maxController.clear();
-      selectedCategoryId = null;
-      sortType = "default";
-    });
-  }
+  // ====================== EDIT ======================
+  void _editExpense(ExpenseModel expense) {
+    final amountCtrl = TextEditingController(
+      text: expense.amount.toStringAsFixed(2),
+    );
+    final noteCtrl = TextEditingController(text: expense.note ?? '');
+    String selectedCat = expense.categoryId;
+    DateTime selectedDate = expense.date;
 
-  /// SORT SHEET
-  void showSort() {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Expense'),
+        content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                "Sort By",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              TextField(
+                controller: amountCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Amount'),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: selectedCat,
+                decoration: const InputDecoration(labelText: 'Category'),
+                items: CategoryModel.predefined
+                    .map(
+                      (cat) => DropdownMenuItem(
+                        value: cat.id,
+                        child: Text(cat.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (val) => selectedCat = val!,
+              ),
+              const SizedBox(height: 12),
               ListTile(
-                title: const Text("Highest Amount"),
-                onTap: () {
-                  setState(() => sortType = "high");
-                  Navigator.pop(context);
+                title: const Text('Date'),
+                subtitle: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (picked != null) selectedDate = picked;
                 },
               ),
-              ListTile(
-                title: const Text("Lowest Amount"),
-                onTap: () {
-                  setState(() => sortType = "low");
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                title: const Text("Default (Newest First)"),
-                onTap: () {
-                  setState(() => sortType = "default");
-                  Navigator.pop(context);
-                },
+              TextField(
+                controller: noteCtrl,
+                decoration: const InputDecoration(labelText: 'Note (optional)'),
               ),
             ],
           ),
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final amount = double.tryParse(amountCtrl.text);
+              if (amount == null || amount <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Enter valid amount')),
+                );
+                return;
+              }
+
+              final success = await context
+                  .read<ExpenseProvider>()
+                  .updateExpense(
+                    expense,
+                    uid: expense.uid,
+                    expenseId: expense.id,
+                    amount: amount,
+                    categoryId: selectedCat,
+                    date: selectedDate,
+                    note: noteCtrl.text.trim().isEmpty
+                        ? null
+                        : noteCtrl.text.trim(),
+                  );
+
+              if (success && mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('✅ Updated successfully')),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ====================== DELETE ======================
+  void _deleteExpense(ExpenseModel expense) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Expense?'),
+        content: Text('Delete \$${expense.amount.toStringAsFixed(2)}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await context
+                  .read<ExpenseProvider>()
+                  .deleteExpense(
+                    expense.id,
+                    uid: expense.uid,
+                    expenseId: expense.id,
+                  );
+              if (success && mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('🗑️ Deleted')));
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // 🔑 Listen to the real ExpenseProvider
     final expenseProvider = context.watch<ExpenseProvider>();
-    final allExpenses = expenseProvider.expenses;
-    final isLoading = expenseProvider.isLoading;
-    final errorMsg = expenseProvider.errorMessage;
-
-    final filtered = _applyFilters(allExpenses.toList());
+    final filtered = _applyFilters(expenseProvider.expenses);
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: isLoading
+        child: expenseProvider.isLoading
             ? const Center(child: CircularProgressIndicator())
-            : errorMsg != null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.error_outline,
-                              color: Colors.red, size: 48),
-                          const SizedBox(height: 12),
-                          Text(errorMsg,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            : expenseProvider.errorMessage != null
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    expenseProvider.errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        const SizedBox(height: 10),
+                        circleBtn(Icons.receipt_long),
+                        const SizedBox(width: 15),
+                        const Expanded(
+                          child: Text(
+                            "Expense List",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
 
-                        /// HEADER
-                        Row(
-                          children: [
-                            circleBtn(Icons.receipt_long),
-                            const SizedBox(width: 15),
-                            const Expanded(
-                              child: Text(
-                                "Expense List",
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 55,
+                            child: TextField(
+                              controller: searchController,
+                              onChanged: (_) => setState(() {}),
+                              decoration: InputDecoration(
+                                hintText: "Search expenses...",
+                                prefixIcon: const Icon(Icons.search),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(30),
                                 ),
                               ),
                             ),
-                          ],
+                          ),
                         ),
+                        const SizedBox(width: 10),
+                        topBtn(
+                          Icons.filter_alt,
+                          () => setState(() => showFilters = !showFilters),
+                        ),
+                        const SizedBox(width: 10),
+                        topBtn(Icons.sort, _showSortBottomSheet),
+                      ],
+                    ),
 
-                        const SizedBox(height: 25),
+                    const SizedBox(height: 25),
 
-                        /// SEARCH
-                        Row(
+                    // ==================== FILTERS ====================
+                    if (showFilters)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: SizedBox(
-                                height: 55,
-                                child: TextField(
-                                  controller: searchController,
-                                  onChanged: (_) => setState(() {}),
-                                  decoration: InputDecoration(
-                                    hintText: "Search expenses...",
-                                    prefixIcon: const Icon(Icons.search),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                      borderSide: BorderSide(
-                                          color: Colors.grey.shade300),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            topBtn(Icons.filter_alt, () {
-                              setState(() => showFilters = !showFilters);
-                            }),
-                            const SizedBox(width: 10),
-                            topBtn(Icons.sort, showSort),
-                          ],
-                        ),
-
-                        const SizedBox(height: 25),
-
-                        /// FILTER PANEL
-                        if (showFilters)
-                          Container(
-                            padding: const EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(25),
-                              border:
-                                  Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Column(
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.filter_alt, color: green),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        "Filter Expenses",
-                                        style: TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                          color: green,
-                                        ),
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () => setState(
-                                          () => showFilters = false),
-                                      child: circleBtn(Icons.close, 42),
-                                    ),
-                                  ],
+                                const Text(
+                                  "Filters",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                                const SizedBox(height: 20),
-
-                                /// MIN MAX
-                                Row(
-                                  children: [
-                                    Expanded(
-                                        child:
-                                            field("Min Amount", minController)),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                        child:
-                                            field("Max Amount", maxController)),
-                                  ],
-                                ),
-
-                                const SizedBox(height: 18),
-
-                                /// CATEGORY DROPDOWN from real predefined list
-                                DropdownButtonFormField<String>(
-                                  initialValue: selectedCategoryId,
-                                  decoration: InputDecoration(
-                                    hintText: "Category",
-                                    border: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(16)),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(16),
-                                      borderSide: BorderSide(
-                                          color: Colors.grey.shade300),
+                                GestureDetector(
+                                  onTap: () {
+                                    selectedCategoryId = null;
+                                    minController.clear();
+                                    maxController.clear();
+                                    setState(() {});
+                                  },
+                                  child: Text(
+                                    "Clear All",
+                                    style: TextStyle(
+                                      color: green,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  items: [
-                                    const DropdownMenuItem(
-                                        value: null,
-                                        child: Text("All Categories")),
-                                    ...CategoryModel.predefined.map(
-                                      (cat) => DropdownMenuItem(
-                                          value: cat.id,
-                                          child: Text(cat.name)),
-                                    ),
-                                  ],
-                                  onChanged: (value) =>
-                                      setState(() => selectedCategoryId = value),
-                                ),
-
-                                const SizedBox(height: 22),
-
-                                /// BUTTONS
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: resetFilter,
-                                        child: button(
-                                            "Reset", Colors.white, Colors.black),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () => setState(() {}),
-                                        child: button(
-                                            "Apply", green, Colors.white),
-                                      ),
-                                    ),
-                                  ],
                                 ),
                               ],
                             ),
-                          ),
-
-                        const SizedBox(height: 25),
-
-                        /// TABLE
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Container(
-                            constraints: BoxConstraints(
-                              minWidth:
-                                  MediaQuery.of(context).size.width - 40,
+                            const SizedBox(height: 12),
+                            // Category Filter
+                            const Text(
+                              "Category",
+                              style: TextStyle(fontWeight: FontWeight.w600),
                             ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(25),
-                              border:
-                                  Border.all(color: Colors.grey.shade300),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String?>(
+                              value: selectedCategoryId,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: green),
+                                ),
+                              ),
+                              items: [
+                                const DropdownMenuItem(
+                                  value: null,
+                                  child: Text("All Categories"),
+                                ),
+                                ...CategoryModel.predefined.map(
+                                  (cat) => DropdownMenuItem(
+                                    value: cat.id,
+                                    child: Text(cat.name),
+                                  ),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                setState(() => selectedCategoryId = val);
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            // Amount Range Filter
+                            const Text(
+                              "Amount Range",
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: minController,
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (_) => setState(() {}),
+                                    decoration: InputDecoration(
+                                      hintText: "Min",
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
+                                          ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: TextField(
+                                    controller: maxController,
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (_) => setState(() {}),
+                                    decoration: InputDecoration(
+                                      hintText: "Max",
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
+                                          ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    const SizedBox(height: 25),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.grey.shade300),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: MediaQuery.of(context).size.width - 32,
                             ),
                             child: Column(
                               children: [
-                                /// TABLE HEADER
+                                // Header
                                 Container(
-                                  padding: const EdgeInsets.all(15),
+                                  padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
                                     color: green,
                                     borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(25),
-                                      topRight: Radius.circular(25),
+                                      topLeft: Radius.circular(20),
+                                      topRight: Radius.circular(20),
                                     ),
                                   ),
-                                  child: const Row(
-                                    children: [
+                                  child: Row(
+                                    children: const [
                                       SizedBox(
-                                          width: 90,
-                                          child: Text("Date", style: _head)),
+                                        width: 75,
+                                        child: Text("Date", style: _head),
+                                      ),
                                       SizedBox(
-                                          width: 90,
-                                          child:
-                                              Text("Amount", style: _head)),
+                                        width: 75,
+                                        child: Text("Amount", style: _head),
+                                      ),
                                       SizedBox(
-                                          width: 110,
-                                          child: Text("Category",
-                                              style: _head)),
+                                        width: 75,
+                                        child: Text("Category", style: _head),
+                                      ),
                                       SizedBox(
-                                        width: 90,
-                                        child: Align(
-                                          alignment: Alignment.centerRight,
-                                          child: Text("Note", style: _head),
+                                        width: 75,
+                                        child: Text(
+                                          "Actions",
+                                          style: _head,
+                                          textAlign: TextAlign.center,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
 
-                                /// EMPTY STATE
                                 if (filtered.isEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.all(32),
-                                    child: Column(
-                                      children: [
-                                        Icon(Icons.inbox_outlined,
-                                            size: 56,
-                                            color: Colors.grey.shade400),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          allExpenses.isEmpty
-                                              ? "No expenses yet.\nTap + to add your first one!"
-                                              : "No expenses match your filters.",
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                              color: Colors.grey.shade500,
-                                              fontSize: 15),
-                                        ),
-                                      ],
+                                  const Padding(
+                                    padding: EdgeInsets.all(40),
+                                    child: Text(
+                                      "No expenses found",
+                                      textAlign: TextAlign.center,
                                     ),
                                   ),
 
-                                /// DATA ROWS
                                 ...filtered.map(
                                   (e) => Container(
-                                    padding: const EdgeInsets.all(15),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                      horizontal: 14,
+                                    ),
                                     decoration: BoxDecoration(
                                       border: Border(
                                         bottom: BorderSide(
-                                            color: Colors.grey.shade200),
+                                          color: Colors.grey.shade200,
+                                        ),
                                       ),
                                     ),
                                     child: Row(
                                       children: [
                                         SizedBox(
-                                          width: 90,
+                                          width: 75,
                                           child: Text(
-                                            "${e.date.day}/${e.date.month}/${e.date.year}",
+                                            DateFormat(
+                                              'dd/MM/yy',
+                                            ).format(e.date),
+                                            overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
-                                                fontSize: 13),
+                                              fontSize: 12,
+                                            ),
                                           ),
                                         ),
                                         SizedBox(
-                                          width: 90,
+                                          width: 75,
                                           child: Text(
                                             "\$${e.amount.toStringAsFixed(2)}",
                                             style: const TextStyle(
-                                                fontWeight: FontWeight.w600),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                         SizedBox(
-                                          width: 110,
+                                          width: 75,
                                           child: Text(
                                             _categoryName(e.categoryId),
-                                            overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
-                                              color:
-                                                  _categoryColor(e.categoryId),
+                                              color: _categoryColor(
+                                                e.categoryId,
+                                              ),
                                               fontWeight: FontWeight.w600,
+                                              fontSize: 12,
                                             ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                         SizedBox(
-                                          width: 90,
-                                          child: Align(
-                                            alignment: Alignment.centerRight,
-                                            child: Text(
-                                              e.note ?? '-',
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                  color:
-                                                      Colors.grey.shade600,
-                                                  fontSize: 12),
-                                            ),
+                                          width: 75,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              GestureDetector(
+                                                onTap: () => _editExpense(e),
+                                                child: const Icon(
+                                                  Icons.edit,
+                                                  color: Colors.blue,
+                                                  size: 16,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              GestureDetector(
+                                                onTap: () => _deleteExpense(e),
+                                                child: const Icon(
+                                                  Icons.delete,
+                                                  color: Colors.red,
+                                                  size: 16,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
@@ -480,16 +578,64 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                             ),
                           ),
                         ),
-
-                        const SizedBox(height: 20),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
+                ),
+              ),
       ),
     );
   }
 
-  /// TOP BUTTON
+  void _showSortBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Sort By",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              title: const Text("Highest Amount"),
+              trailing: sortType == "high"
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+              onTap: () {
+                setState(() => sortType = "high");
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              title: const Text("Lowest Amount"),
+              trailing: sortType == "low"
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+              onTap: () {
+                setState(() => sortType = "low");
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              title: const Text("Newest First"),
+              trailing: sortType == "default"
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+              onTap: () {
+                setState(() => sortType = "default");
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget topBtn(IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -505,49 +651,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     );
   }
 
-  /// FIELD
-  Widget field(String hint, TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      keyboardType: TextInputType.number,
-      onChanged: (_) => setState(() {}),
-      decoration: InputDecoration(
-        hintText: hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-      ),
-    );
-  }
-
-  /// BUTTON
-  Widget button(String text, Color bg, Color textColor) {
+  Widget circleBtn(IconData icon) {
     return Container(
-      height: 55,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(16),
-        border: bg == Colors.white ? Border.all(color: Colors.grey.shade300) : null,
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  /// CIRCLE BUTTON
-  Widget circleBtn(IconData icon, [double size = 50]) {
-    return Container(
-      height: size,
-      width: size,
+      height: 50,
+      width: 50,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: Colors.grey.shade300),

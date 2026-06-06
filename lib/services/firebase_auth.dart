@@ -228,6 +228,60 @@ class FirebaseAuthService {
     }
   }
 
+  /// Update user email
+  Future<void> updateUserEmail({required String newEmail}) async {
+    try {
+      final normalizedEmail = _normalizeEmail(newEmail);
+      if (!_isValidEmail(normalizedEmail)) {
+        throw Exception('Invalid email address format');
+      }
+
+      User? user = _auth.currentUser;
+      if (user != null) {
+        await (user as dynamic).updateEmail(normalizedEmail);
+        await user.reload();
+      } else {
+        throw Exception('No authenticated user found');
+      }
+    } on FirebaseAuthException catch (e) {
+      print('🔴 Firebase error updating email: ${e.code} - ${e.message}');
+      if (e.code == 'requires-recent-login') {
+        throw Exception('Please log in again before changing your email.');
+      }
+      throw Exception(e.message ?? 'Error updating email');
+    } catch (e) {
+      print('🔴 Error updating email: $e');
+      throw Exception('Error updating email: $e');
+    }
+  }
+
+  /// Update user password
+  Future<void> updateUserPassword({required String newPassword}) async {
+    try {
+      final trimmedPassword = newPassword.trim();
+      if (trimmedPassword.length < 6) {
+        throw Exception('Password must be at least 6 characters');
+      }
+
+      User? user = _auth.currentUser;
+      if (user != null) {
+        await user.updatePassword(trimmedPassword);
+        await user.reload();
+      } else {
+        throw Exception('No authenticated user found');
+      }
+    } on FirebaseAuthException catch (e) {
+      print('🔴 Firebase error updating password: ${e.code} - ${e.message}');
+      if (e.code == 'requires-recent-login') {
+        throw Exception('Please log in again before changing your password.');
+      }
+      throw Exception(e.message ?? 'Error updating password');
+    } catch (e) {
+      print('🔴 Error updating password: $e');
+      throw Exception('Error updating password: $e');
+    }
+  }
+
   /// Force refresh of current user
   Future<void> refreshCurrentUser() async {
     try {

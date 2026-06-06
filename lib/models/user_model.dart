@@ -6,6 +6,7 @@ class UserModel {
   final String email;
   final String? image;
   final DateTime createdAt;
+  final double? monthlyBudget;
 
   UserModel({
     required this.uid,
@@ -13,6 +14,7 @@ class UserModel {
     required this.email,
     this.image,
     required this.createdAt,
+    this.monthlyBudget,
   });
 
   /// Convert UserModel to Map for Firestore
@@ -23,6 +25,7 @@ class UserModel {
       'email': email,
       'image': image,
       'createdAt': createdAt,
+      'monthlyBudget': monthlyBudget,
     };
   }
 
@@ -34,6 +37,7 @@ class UserModel {
       email: map['email'] as String,
       image: map['image'] as String?,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      monthlyBudget: (map['monthlyBudget'] as num?)?.toDouble(),
     );
   }
 
@@ -50,6 +54,7 @@ class UserModel {
     String? email,
     String? image,
     DateTime? createdAt,
+    double? monthlyBudget,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -57,6 +62,7 @@ class UserModel {
       email: email ?? this.email,
       image: image ?? this.image,
       createdAt: createdAt ?? this.createdAt,
+      monthlyBudget: monthlyBudget ?? this.monthlyBudget,
     );
   }
 

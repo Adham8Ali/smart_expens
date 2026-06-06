@@ -242,4 +242,5 @@ class CategoryService {
         cause: e,
       );
     }
-
+  }
+}

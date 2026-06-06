@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_expens/providers/user_provider.dart';
+import 'package:smart_expens/providers/expense_provider.dart';
 import 'package:smart_expens/screens/account_screen.dart';
 import 'package:smart_expens/widgets/custom_card.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'dart:math';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.monthlyBudget});
-
-  final double monthlyBudget;
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -19,10 +19,34 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final currentUser = userProvider.currentUser;
-    // Define monthly spending and budget as variables for calculation
-    double monthlySpending = 3000;
-    double monthlyBudget = widget.monthlyBudget;
-    double progress = monthlySpending / monthlyBudget;
+    final expenseProvider = Provider.of<ExpenseProvider>(context);
+    final double monthlySpending = expenseProvider.totalAmount;
+    final double monthlyBudget =
+        Provider.of<UserProvider>(context).currentUser?.monthlyBudget ?? 0.0;
+    final double progress = monthlyBudget == 0
+        ? 0
+        : monthlySpending / monthlyBudget;
+
+    // Chart data for last 6 months
+    final monthsCount = 6;
+    final now = DateTime.now();
+    final monthDates = List.generate(
+      monthsCount,
+      (i) => DateTime(now.year, now.month - (monthsCount - 1 - i), 1),
+    );
+
+    final List<FlSpot> spots = [];
+    for (var i = 0; i < monthDates.length; i++) {
+      final d = monthDates[i];
+      final total = expenseProvider.expenses
+          .where((e) => e.date.year == d.year && e.date.month == d.month)
+          .fold(0.0, (s, e) => s + e.amount);
+      spots.add(FlSpot(i.toDouble(), total));
+    }
+
+    final chartMaxY = (spots.isEmpty)
+        ? 100.0
+        : max(100.0, spots.map((s) => s.y).reduce(max) * 1.2);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -265,53 +289,102 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 280,
                       child: LineChart(
                         LineChartData(
-                          gridData: FlGridData(show: false),
+                          gridData: FlGridData(
+                            show: true,
+                            drawVerticalLine: false,
+                            horizontalInterval: chartMaxY / 5,
+                            getDrawingHorizontalLine: (value) => FlLine(
+                              color: Colors.grey.shade300,
+                              strokeWidth: 1,
+                            ),
+                          ),
+                          extraLinesData: ExtraLinesData(
+                            verticalLines: [
+                              VerticalLine(
+                                x: 0,
+                                color: Colors.red,
+                                strokeWidth: 2,
+                                dashArray: [5, 5],
+                              ),
+                            ],
+                          ),
                           titlesData: FlTitlesData(
                             leftTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: true),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                interval: chartMaxY / 5,
+                                reservedSize: 40,
+                                getTitlesWidget: (value, meta) => Text(
+                                  value.toInt().toString(),
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
                             ),
                             bottomTitles: AxisTitles(
                               sideTitles: SideTitles(
                                 showTitles: true,
+                                reservedSize: 28,
                                 getTitlesWidget: (value, meta) {
-                                  const months = [
-                                    "JAN",
-                                    "FEB",
-                                    "MAR",
-                                    "APR",
-                                    "MAY",
-                                    "JUN",
-                                    "JUL",
-                                    "AUG",
-                                  ];
-                                  if (value.toInt() < 0 ||
-                                      value.toInt() >= months.length) {
+                                  final idx = value.toInt();
+                                  if (idx < 0 || idx >= monthDates.length) {
                                     return const Text("");
                                   }
-                                  return Text(months[value.toInt()]);
+                                  final labelDate = monthDates[idx];
+                                  return Text(
+                                    '${labelDate.month}/${labelDate.year}',
+                                    style: const TextStyle(fontSize: 12),
+                                  );
                                 },
                               ),
                             ),
                           ),
-                          borderData: FlBorderData(show: false),
+                          borderData: FlBorderData(
+                            show: true,
+                            border: Border(
+                              left: BorderSide(color: Colors.black, width: 2),
+                              bottom: BorderSide(color: Colors.black, width: 2),
+                            ),
+                          ),
+                          minX: 0,
+                          maxX: (spots.isEmpty) ? 5 : spots.length - 1,
+                          minY: 0,
+                          maxY: chartMaxY,
                           lineBarsData: [
                             LineChartBarData(
-                              spots: const [
-                                FlSpot(0, 10),
-                                FlSpot(1, 20),
-                                FlSpot(2, 45),
-                                FlSpot(3, 30),
-                                FlSpot(4, 55),
-                                FlSpot(5, 65),
-                                FlSpot(6, 85),
-                                FlSpot(7, 75),
-                              ],
+                              spots: spots,
                               isCurved: true,
-                              color: Colors.green,
+                              color: const Color(0xff115E38),
                               barWidth: 3,
-                              dotData: FlDotData(show: true),
+                              dotData: FlDotData(
+                                show: true,
+                                getDotPainter:
+                                    (spot, percent, barData, index) =>
+                                        FlDotCirclePainter(
+                                          radius: 4,
+                                          color: const Color(0xff115E38),
+                                          strokeWidth: 0,
+                                        ),
+                              ),
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: const Color(0xff115E38).withAlpha(31),
+                              ),
                             ),
                           ],
+                          lineTouchData: LineTouchData(
+                            enabled: true,
+                            touchTooltipData: LineTouchTooltipData(
+                              getTooltipItems: (touchedSpots) => touchedSpots.map((
+                                ts,
+                              ) {
+                                final d = monthDates[ts.x.toInt()];
+                                return LineTooltipItem(
+                                  '${d.month}/${d.year}: ${ts.y.toStringAsFixed(2)}',
+                                  const TextStyle(color: Colors.white),
+                                );
+                              }).toList(),
+                            ),
+                          ),
                         ),
                       ),
                     ),

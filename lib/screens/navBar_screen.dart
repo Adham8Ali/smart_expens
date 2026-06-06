@@ -10,9 +10,7 @@ import 'package:smart_expens/screens/home_screen.dart';
 import 'package:smart_expens/screens/reports_screen.dart';
 
 class NavbarScreen extends StatefulWidget {
-  const NavbarScreen({super.key, required this.monthlyBudget});
-
-  final double monthlyBudget;
+  const NavbarScreen({super.key});
 
   @override
   State<NavbarScreen> createState() => _NavbarScreenState();
@@ -26,12 +24,7 @@ class _NavbarScreenState extends State<NavbarScreen> {
   void initState() {
     super.initState();
 
-    screens = [
-      HomeScreen(monthlyBudget: widget.monthlyBudget),
-      ReportsScreen(),
-      ExpenseScreen(),
-      AccountScreen(),
-    ];
+    screens = [HomeScreen(), ReportsScreen(), ExpenseScreen(), AccountScreen()];
   }
 
   @override

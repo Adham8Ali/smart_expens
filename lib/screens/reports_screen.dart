@@ -1,12 +1,129 @@
 import 'package:flutter/material.dart';
 import 'package:smart_expens/widgets/custom_card.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_expens/providers/user_provider.dart';
+import 'package:smart_expens/providers/expense_provider.dart';
+import 'dart:math';
+import 'package:intl/intl.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final expenseProvider = Provider.of<ExpenseProvider>(context);
+    final monthsCount = 6;
+    final now = DateTime.now();
+    final monthDates = List.generate(
+      monthsCount,
+      (i) => DateTime(now.year, now.month - (monthsCount - 1 - i), 1),
+    );
+
+    final List<FlSpot> spots = [];
+    for (var i = 0; i < monthDates.length; i++) {
+      final d = monthDates[i];
+      final total = expenseProvider.expenses
+          .where((e) => e.date.year == d.year && e.date.month == d.month)
+          .fold(0.0, (s, e) => s + e.amount);
+      spots.add(FlSpot(i.toDouble(), total));
+    }
+
+    final chartMaxY = (spots.isEmpty)
+        ? 100.0
+        : max(100.0, spots.map((s) => s.y).reduce(max) * 1.2);
+
+    // Summary values
+    final currentMonth = DateTime(now.year, now.month, 1);
+    final lastMonth = DateTime(now.year, now.month - 1, 1);
+    final currentMonthTotal = expenseProvider.expenses
+        .where(
+          (e) =>
+              e.date.year == currentMonth.year &&
+              e.date.month == currentMonth.month,
+        )
+        .fold(0.0, (s, e) => s + e.amount);
+    final lastMonthTotal = expenseProvider.expenses
+        .where(
+          (e) =>
+              e.date.year == lastMonth.year && e.date.month == lastMonth.month,
+        )
+        .fold(0.0, (s, e) => s + e.amount);
+
+    final currentMonthTxCount = expenseProvider.expenses
+        .where(
+          (e) =>
+              e.date.year == currentMonth.year &&
+              e.date.month == currentMonth.month,
+        )
+        .length;
+
+    // transaction counts omitted (not used for current badges)
+
+    final currentDayOfMonth = now.day;
+    final dailyAverage = currentDayOfMonth == 0
+        ? 0.0
+        : currentMonthTotal / currentDayOfMonth;
+
+    final spendingChangePercent = lastMonthTotal == 0
+        ? 0.0
+        : ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100.0;
+    final spendingChangeText = lastMonthTotal == 0
+        ? '+0%'
+        : '${spendingChangePercent >= 0 ? '+' : ''}${spendingChangePercent.toStringAsFixed(1)}%';
+    final spendingChangeColor = spendingChangePercent >= 0
+        ? Colors.green
+        : Colors.red;
+
+    // transaction-change values kept if needed later
+
+    // Category-specific (Food & Dining) summary
+    final categoryId = 'food';
+    final categoryLabel = 'Food & Dining';
+    final foodCurrentTotal = expenseProvider.expenses
+        .where(
+          (e) =>
+              e.categoryId == categoryId &&
+              e.date.year == currentMonth.year &&
+              e.date.month == currentMonth.month,
+        )
+        .fold(0.0, (s, e) => s + e.amount);
+    final foodLastTotal = expenseProvider.expenses
+        .where(
+          (e) =>
+              e.categoryId == categoryId &&
+              e.date.year == lastMonth.year &&
+              e.date.month == lastMonth.month,
+        )
+        .fold(0.0, (s, e) => s + e.amount);
+    final foodChangePercent = foodLastTotal == 0
+        ? 0.0
+        : ((foodCurrentTotal - foodLastTotal) / foodLastTotal) * 100.0;
+    final foodChangeText = foodLastTotal == 0
+        ? '+0%'
+        : '${foodChangePercent >= 0 ? '+' : ''}${foodChangePercent.toStringAsFixed(1)}%';
+    final foodChangeColor = foodChangePercent >= 0 ? Colors.green : Colors.red;
+    final foodBadgeText = '$foodChangeText vs last month';
+
+    final spendingBadgeText =
+        '$spendingChangeText ${spendingChangePercent >= 0 ? 'increase' : 'decrease'}';
+
+    final formatter = NumberFormat.decimalPattern();
+
+    // Target comparison (daily) based on user's persisted monthly budget
+    final userProvider = Provider.of<UserProvider>(context);
+    final monthlyBudget = userProvider.currentUser?.monthlyBudget ?? 0.0;
+    final targetDaily = monthlyBudget > 0 ? monthlyBudget / 30.0 : 0.0;
+    final targetDiffPercent = (targetDaily == 0)
+        ? 0.0
+        : ((dailyAverage - targetDaily) / targetDaily) * 100.0;
+    final targetBadgeText = (targetDaily == 0)
+        ? '+0% vs target'
+        : '${targetDiffPercent >= 0 ? '+' : ''}${targetDiffPercent.toStringAsFixed(0)}% vs target';
+    final targetBadgeColor = targetDiffPercent >= 0
+        ? Colors.green
+        : Colors.orange;
+
     return Scaffold(
       backgroundColor: Colors.white,
       // appBar: AppBar(
@@ -71,7 +188,7 @@ class ReportsScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        "1,247",
+                        formatter.format(dailyAverage.round()),
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -87,16 +204,16 @@ class ReportsScreen extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.red.shade100,
+                              color: foodChangeColor.withAlpha(30),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              "+12% vs last month",
-                              style: TextStyle(color: Colors.red),
+                              foodBadgeText,
+                              style: TextStyle(color: foodChangeColor),
                             ),
                           ),
                           SizedBox(width: 10),
-                          Text("Food & Dining"),
+                          Text(categoryLabel),
                         ],
                       ),
                     ],
@@ -127,7 +244,7 @@ class ReportsScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        "3,892",
+                        formatter.format(currentMonthTotal.round()),
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -143,12 +260,12 @@ class ReportsScreen extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.green.shade100,
+                              color: spendingChangeColor.withAlpha(30),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              "+24% increase",
-                              style: TextStyle(color: Color(0xff115E38)),
+                              spendingBadgeText,
+                              style: TextStyle(color: spendingChangeColor),
                             ),
                           ),
                           SizedBox(width: 10),
@@ -187,7 +304,7 @@ class ReportsScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        "127",
+                        formatter.format(currentMonthTxCount),
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -203,12 +320,12 @@ class ReportsScreen extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.orange.shade100,
+                              color: targetBadgeColor.withAlpha(30),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              "-5% vs target",
-                              style: TextStyle(color: Colors.orange),
+                              targetBadgeText,
+                              style: TextStyle(color: targetBadgeColor),
                             ),
                           ),
                           SizedBox(width: 10),
@@ -262,53 +379,104 @@ class ReportsScreen extends StatelessWidget {
                         height: 280,
                         child: LineChart(
                           LineChartData(
-                            gridData: FlGridData(show: false),
+                            gridData: FlGridData(
+                              show: true,
+                              drawVerticalLine: false,
+                              horizontalInterval: chartMaxY / 5,
+                              getDrawingHorizontalLine: (value) => FlLine(
+                                color: Colors.grey.shade300,
+                                strokeWidth: 1,
+                              ),
+                            ),
+                            extraLinesData: ExtraLinesData(
+                              verticalLines: [
+                                VerticalLine(
+                                  x: 0,
+                                  color: Colors.red,
+                                  strokeWidth: 2,
+                                  dashArray: [5, 5],
+                                ),
+                              ],
+                            ),
                             titlesData: FlTitlesData(
                               leftTitles: AxisTitles(
-                                sideTitles: SideTitles(showTitles: true),
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  interval: chartMaxY / 5,
+                                  reservedSize: 40,
+                                  getTitlesWidget: (value, meta) => Text(
+                                    value.toInt().toString(),
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ),
                               ),
                               bottomTitles: AxisTitles(
                                 sideTitles: SideTitles(
                                   showTitles: true,
+                                  reservedSize: 28,
                                   getTitlesWidget: (value, meta) {
-                                    const months = [
-                                      "JAN",
-                                      "FEB",
-                                      "MAR",
-                                      "APR",
-                                      "MAY",
-                                      "JUN",
-                                      "JUL",
-                                      "AUG",
-                                    ];
-                                    if (value.toInt() < 0 ||
-                                        value.toInt() >= months.length) {
+                                    final idx = value.toInt();
+                                    if (idx < 0 || idx >= monthDates.length) {
                                       return const Text("");
                                     }
-                                    return Text(months[value.toInt()]);
+                                    final labelDate = monthDates[idx];
+                                    return Text(
+                                      '${labelDate.month}/${labelDate.year}',
+                                      style: const TextStyle(fontSize: 12),
+                                    );
                                   },
                                 ),
                               ),
                             ),
-                            borderData: FlBorderData(show: false),
+                            borderData: FlBorderData(
+                              show: true,
+                              border: Border(
+                                left: BorderSide(color: Colors.black, width: 2),
+                                bottom: BorderSide(
+                                  color: Colors.black,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            minX: 0,
+                            maxX: spots.isEmpty ? 5 : spots.length - 1,
+                            minY: 0,
+                            maxY: chartMaxY,
                             lineBarsData: [
                               LineChartBarData(
-                                spots: const [
-                                  FlSpot(0, 10),
-                                  FlSpot(1, 20),
-                                  FlSpot(2, 45),
-                                  FlSpot(3, 30),
-                                  FlSpot(4, 55),
-                                  FlSpot(5, 65),
-                                  FlSpot(6, 85),
-                                  FlSpot(7, 75),
-                                ],
+                                spots: spots,
                                 isCurved: true,
-                                color: Colors.green,
+                                color: const Color(0xff115E38),
                                 barWidth: 3,
-                                dotData: FlDotData(show: true),
+                                dotData: FlDotData(
+                                  show: true,
+                                  getDotPainter:
+                                      (spot, percent, barData, index) =>
+                                          FlDotCirclePainter(
+                                            radius: 4,
+                                            color: const Color(0xff115E38),
+                                            strokeWidth: 0,
+                                          ),
+                                ),
+                                belowBarData: BarAreaData(
+                                  show: true,
+                                  color: const Color(0xff115E38).withAlpha(31),
+                                ),
                               ),
                             ],
+                            lineTouchData: LineTouchData(
+                              enabled: true,
+                              touchTooltipData: LineTouchTooltipData(
+                                getTooltipItems: (touchedSpots) =>
+                                    touchedSpots.map((ts) {
+                                      final d = monthDates[ts.x.toInt()];
+                                      return LineTooltipItem(
+                                        '${d.month}/${d.year}: ${ts.y.toStringAsFixed(2)}',
+                                        const TextStyle(color: Colors.white),
+                                      );
+                                    }).toList(),
+                              ),
+                            ),
                           ),
                         ),
                       ),

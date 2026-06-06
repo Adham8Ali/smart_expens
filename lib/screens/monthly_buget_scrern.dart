@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_expens/providers/expense_provider.dart';
+import 'package:smart_expens/providers/user_provider.dart';
 import 'package:smart_expens/screens/navBar_screen.dart';
 
 class MonthlyBudgetScreen extends StatefulWidget {
@@ -11,19 +14,27 @@ class MonthlyBudgetScreen extends StatefulWidget {
 class _MonthlyBudgetScreenState extends State<MonthlyBudgetScreen> {
   final TextEditingController budgetController = TextEditingController();
 
-  double currentSpending = 1847;
-
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final existingBudget = userProvider.currentUser?.monthlyBudget ?? 0.0;
+
+    if (budgetController.text.isEmpty && existingBudget > 0) {
+      budgetController.text = existingBudget.toInt().toString();
+    }
+
     double budget =
         double.tryParse(
           budgetController.text.isEmpty ? "0" : budgetController.text,
         ) ??
         0;
 
+    final expenseProvider = Provider.of<ExpenseProvider>(context);
+    final double currentSpending = expenseProvider.totalAmount;
     double percent = budget == 0 ? 0 : currentSpending / budget;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xffF5F5F5),
 
       appBar: AppBar(
@@ -47,7 +58,7 @@ class _MonthlyBudgetScreenState extends State<MonthlyBudgetScreen> {
         ),
       ),
 
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,7 +147,7 @@ class _MonthlyBudgetScreenState extends State<MonthlyBudgetScreen> {
               ),
             ),
 
-            const Spacer(),
+            const SizedBox(height: 20),
 
             /// Save Button
             SizedBox(
@@ -149,16 +160,21 @@ class _MonthlyBudgetScreenState extends State<MonthlyBudgetScreen> {
                     borderRadius: BorderRadius.circular(18),
                   ),
                 ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => NavbarScreen(
-                        monthlyBudget:
-                            double.tryParse(budgetController.text) ?? 0,
+                onPressed: () async {
+                  final val = double.tryParse(budgetController.text) ?? 0.0;
+                  try {
+                    await userProvider.setMonthlyBudget(val);
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NavbarScreen(),
                       ),
-                    ),
-                  );
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to save budget: $e')),
+                    );
+                  }
                 },
                 icon: const Icon(Icons.save, color: Colors.white),
                 label: const Text(

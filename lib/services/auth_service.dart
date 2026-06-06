@@ -80,6 +80,21 @@ class AuthService {
     }
   }
 
+  /// Update user email in Auth and Firestore
+  Future<void> updateEmail({required String uid, required String email}) async {
+    await _firebaseAuthService.updateUserEmail(newEmail: email);
+
+    // Update Firestore document
+    await _firestoreService.updateUserFields(uid, {
+      'email': email.trim().toLowerCase(),
+    });
+  }
+
+  /// Update password in Auth
+  Future<void> updatePassword({required String newPassword}) async {
+    await _firebaseAuthService.updateUserPassword(newPassword: newPassword);
+  }
+
   /// Check if user is logged in
   bool get isSignedIn => _firebaseAuthService.getCurrentUser() != null;
 
