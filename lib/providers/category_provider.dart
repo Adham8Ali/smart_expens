@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:smart_expens/models/category_model.dart';
 import 'package:smart_expens/services/category_service.dart';
@@ -36,7 +35,7 @@ class CategoryProvider with ChangeNotifier {
   void startListening(String uid) {
     // ── Guard: abort if uid is empty ───────────────────────────────────────
     if (uid.isEmpty) {
-      debugPrint('⚠️  CategoryProvider.startListening: uid is empty, abort.');
+      debugPrint('  CategoryProvider.startListening: uid is empty, abort.');
       return;
     }
 
@@ -61,7 +60,7 @@ class CategoryProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    debugPrint('👂 CategoryProvider.startListening → uid=$uid');
+    debugPrint('CategoryProvider.startListening → uid=$uid');
 
     _subscription = _service
         .getUserCategoriesStream(uid)

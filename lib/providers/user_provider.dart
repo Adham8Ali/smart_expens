@@ -37,11 +37,11 @@ class UserProvider with ChangeNotifier {
     }
 
     _isInitialized = true;
-    print('🔵 Initializing UserProvider auth listener');
+    print(' Initializing UserProvider auth listener');
 
     _authService.authStateChanges().listen(
       (User? user) async {
-        print('🔔 Auth state changed: user = ${user?.uid ?? "null"}');
+        print(' Auth state changed: user = ${user?.uid ?? "null"}');
         _authUser = user;
 
         if (user != null) {
@@ -68,7 +68,7 @@ class UserProvider with ChangeNotifier {
   Future<void> _fetchUserData(String uid) async {
     try {
       _errorMessage = null;
-      print('🔵 Fetching user data for UID: $uid');
+      print(' Fetching user data for UID: $uid');
 
       UserModel? user = await _firestoreService.getUser(uid);
 
@@ -106,7 +106,7 @@ class UserProvider with ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      print('🔵 Starting signup process for: $email');
+      print(' Starting signup process for: $email');
 
       final user = UserInput(
         fullName: fullName.trim(),
@@ -115,18 +115,18 @@ class UserProvider with ChangeNotifier {
       );
 
       final authUser = await _authService.signUp(user);
-      print('✅ Signup successful for: ${authUser.uid}');
+      print(' Signup successful for: ${authUser.uid}');
 
-      // ✅ Explicitly fetch Firestore data right after sign-up
+      //  Explicitly fetch Firestore data right after sign-up
       // so that _currentUser is populated before navigation
       await _fetchUserData(authUser.uid);
       _authUser = authUser;
     } on FirebaseException catch (e) {
-      print('🔴 Firebase error during signup: ${e.code}');
+      print(' Firebase error during signup: ${e.code}');
       _errorMessage = e.message ?? 'Signup failed';
       rethrow;
     } catch (e) {
-      print('🔴 Error during signup: $e');
+      print(' Error during signup: $e');
       _errorMessage = e.toString();
       rethrow;
     } finally {
@@ -145,20 +145,20 @@ class UserProvider with ChangeNotifier {
       print('🔵 Starting login process for: $email');
 
       final authUser = await _authService.login(email.trim(), password.trim());
-      print('✅ Login successful for: ${authUser.uid}');
+      print(' Login successful for: ${authUser.uid}');
 
       _authUser = authUser;
 
-      // ✅ Fetch user data after successful authentication
+      //  Fetch user data after successful authentication
       // The auth listener will also fire, but this ensures _currentUser is set immediately
       await _fetchUserData(authUser.uid);
     } on FirebaseException catch (e) {
-      print('🔴 Firebase error during login: ${e.code}');
+      print(' Firebase error during login: ${e.code}');
       _errorMessage = e.message ?? 'Login failed';
       _authUser = null;
       rethrow;
     } catch (e) {
-      print('🔴 Error during login: $e');
+      print(' Error during login: $e');
       _errorMessage = e.toString();
       _authUser = null;
       rethrow;
@@ -174,7 +174,7 @@ class UserProvider with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      print('🔵 Starting sign out');
+      print(' Starting sign out');
 
       await _authService.signOut();
 
@@ -182,9 +182,9 @@ class UserProvider with ChangeNotifier {
       _authUser = null;
       _errorMessage = null;
 
-      print('✅ Sign out successful');
+      print(' Sign out successful');
     } catch (e) {
-      print('🔴 Error during sign out: $e');
+      print(' Error during sign out: $e');
       _errorMessage = e.toString();
       rethrow;
     } finally {
@@ -204,9 +204,9 @@ class UserProvider with ChangeNotifier {
 
       await _authService.resetPassword(email.trim());
 
-      print('✅ Password reset email sent');
+      print(' Password reset email sent');
     } catch (e) {
-      print('🔴 Error during password reset: $e');
+      print(' Error during password reset: $e');
       _errorMessage = e.toString();
       rethrow;
     } finally {
@@ -226,7 +226,7 @@ class UserProvider with ChangeNotifier {
         throw Exception('No authenticated user');
       }
 
-      print('🔵 Updating profile for user: ${_authUser!.uid}');
+      print(' Updating profile for user: ${_authUser!.uid}');
 
       await _authService.updateProfile(
         uid: _authUser!.uid,
@@ -237,9 +237,9 @@ class UserProvider with ChangeNotifier {
       // Refresh user data
       await _fetchUserData(_authUser!.uid);
 
-      print('✅ Profile updated successfully');
+      print(' Profile updated successfully');
     } catch (e) {
-      print('🔴 Error updating profile: $e');
+      print(' Error updating profile: $e');
       _errorMessage = e.toString();
       rethrow;
     } finally {
@@ -259,15 +259,15 @@ class UserProvider with ChangeNotifier {
         throw Exception('No authenticated user');
       }
 
-      print('🔵 Updating email for user: ${_authUser!.uid}');
+      print(' Updating email for user: ${_authUser!.uid}');
 
       await _authService.updateEmail(uid: _authUser!.uid, email: email);
 
       await _fetchUserData(_authUser!.uid);
 
-      print('✅ Email updated successfully');
+      print(' Email updated successfully');
     } catch (e) {
-      print('🔴 Error updating email: $e');
+      print(' Error updating email: $e');
       _errorMessage = e.toString();
       rethrow;
     } finally {
@@ -287,13 +287,13 @@ class UserProvider with ChangeNotifier {
         throw Exception('No authenticated user');
       }
 
-      print('🔵 Updating password for user: ${_authUser!.uid}');
+      print(' Updating password for user: ${_authUser!.uid}');
 
       await _authService.updatePassword(newPassword: newPassword);
 
-      print('✅ Password updated successfully');
+      print(' Password updated successfully');
     } catch (e) {
-      print('🔴 Error updating password: $e');
+      print(' Error updating password: $e');
       _errorMessage = e.toString();
       rethrow;
     } finally {
@@ -305,7 +305,7 @@ class UserProvider with ChangeNotifier {
   /// Refresh user data from Firestore
   Future<void> refreshUserData() async {
     if (_authUser != null) {
-      print('🔵 Refreshing user data for: ${_authUser!.uid}');
+      print(' Refreshing user data for: ${_authUser!.uid}');
       await _fetchUserData(_authUser!.uid);
     }
   }
@@ -343,13 +343,13 @@ class UserProvider with ChangeNotifier {
   /// Force refresh of auth state
   Future<void> refreshAuthState() async {
     try {
-      print('🔵 Refreshing auth state');
+      print(' Refreshing auth state');
       await _authService.refreshCurrentUser();
       if (_authUser != null) {
         await _fetchUserData(_authUser!.uid);
       }
     } catch (e) {
-      print('⚠️ Error refreshing auth state: $e');
+      print(' Error refreshing auth state: $e');
     }
   }
 }

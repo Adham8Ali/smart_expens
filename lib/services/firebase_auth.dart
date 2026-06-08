@@ -47,8 +47,8 @@ class FirebaseAuthService {
         await authUser.updateDisplayName(user.fullName.trim());
         await authUser.reload();
       } catch (e) {
-        print('⚠️ Warning: Failed to update display name: $e');
-        // Don't fail signup if display name update fails
+        print(' Warning: Failed to update display name: $e');
+        // Don't fil signup if display name update fails
       }
 
       // Create Firestore document for the user
@@ -63,21 +63,19 @@ class FirebaseAuthService {
 
         await _firestoreService.createUser(userModel);
       } catch (e) {
-        // ❌ CRITICAL: If Firestore fails, delete the auth user
-        print('❌ ERROR: Firestore creation failed: $e');
+        //  CRITICAL: If Firestore fails, delete the auth user
+        print(' ERROR: Firestore creation failed: $e');
         try {
           await authUser.delete();
         } catch (deleteError) {
-          print('❌ ERROR: Failed to rollback auth user: $deleteError');
+          print(' ERROR: Failed to rollback auth user: $deleteError');
         }
         throw Exception('Failed to create user profile. Please try again.');
       }
 
       return authUser;
     } on FirebaseAuthException catch (e) {
-      print(
-        '🔴 Firebase Auth Exception during signup: ${e.code} - ${e.message}',
-      );
+      print(' Firebase Auth Exception during signup: ${e.code} - ${e.message}');
 
       if (e.code == 'weak-password') {
         throw Exception('Password is too weak (at least 6 characters)');
@@ -92,7 +90,7 @@ class FirebaseAuthService {
       }
       throw Exception(e.message ?? 'Registration failed. Please try again.');
     } catch (e) {
-      print('🔴 Unexpected error during signup: $e');
+      print(' Unexpected error during signup: $e');
       throw Exception('Registration failed: ${e.toString()}');
     }
   }
@@ -114,7 +112,7 @@ class FirebaseAuthService {
         throw Exception('Invalid email address format');
       }
 
-      print('🔵 Attempting login with email: $normalizedEmail');
+      print(' Attempting login with email: $normalizedEmail');
 
       UserCredential credential = await _auth.signInWithEmailAndPassword(
         email: normalizedEmail,
@@ -126,12 +124,10 @@ class FirebaseAuthService {
         throw Exception('Failed to login. User not found.');
       }
 
-      print('✅ Login successful for user: ${authUser.uid}');
+      print(' Login successful for user: ${authUser.uid}');
       return authUser;
     } on FirebaseAuthException catch (e) {
-      print(
-        '🔴 Firebase Auth Exception during login: ${e.code} - ${e.message}',
-      );
+      print(' Firebase Auth Exception during login: ${e.code} - ${e.message}');
 
       if (e.code == 'user-not-found') {
         throw Exception(
@@ -152,7 +148,7 @@ class FirebaseAuthService {
         e.message ?? 'Login failed. Please check your email and password.',
       );
     } catch (e) {
-      print('🔴 Unexpected error during login: $e');
+      print(' Unexpected error during login: $e');
       throw Exception('Login failed: ${e.toString()}');
     }
   }
@@ -168,7 +164,7 @@ class FirebaseAuthService {
 
       await _auth.sendPasswordResetEmail(email: normalizedEmail);
     } on FirebaseAuthException catch (e) {
-      print('🔴 Firebase Auth Exception during password reset: ${e.code}');
+      print('Firebase Auth Exception during password reset: ${e.code}');
 
       if (e.code == 'user-not-found') {
         throw Exception('No account found with this email');
@@ -177,7 +173,7 @@ class FirebaseAuthService {
       }
       throw Exception(e.message ?? 'Failed to send password reset email');
     } catch (e) {
-      print('🔴 Unexpected error during password reset: $e');
+      print(' Unexpected error during password reset: $e');
       throw Exception('Failed to send password reset: ${e.toString()}');
     }
   }
@@ -185,11 +181,11 @@ class FirebaseAuthService {
   /// Sign out
   Future<void> signOut() async {
     try {
-      print('🔵 Signing out user');
+      print(' Signing out user');
       await _auth.signOut();
-      print('✅ Sign out successful');
+      print(' Sign out successful');
     } catch (e) {
-      print('🔴 Error during logout: $e');
+      print(' Error during logout: $e');
       throw Exception('Error during logout: $e');
     }
   }
@@ -223,7 +219,7 @@ class FirebaseAuthService {
         throw Exception('No authenticated user found');
       }
     } catch (e) {
-      print('🔴 Error updating profile: $e');
+      print(' Error updating profile: $e');
       throw Exception('Error updating profile: $e');
     }
   }
@@ -244,13 +240,13 @@ class FirebaseAuthService {
         throw Exception('No authenticated user found');
       }
     } on FirebaseAuthException catch (e) {
-      print('🔴 Firebase error updating email: ${e.code} - ${e.message}');
+      print('Firebase error updating email: ${e.code} - ${e.message}');
       if (e.code == 'requires-recent-login') {
         throw Exception('Please log in again before changing your email.');
       }
       throw Exception(e.message ?? 'Error updating email');
     } catch (e) {
-      print('🔴 Error updating email: $e');
+      print('Error updating email: $e');
       throw Exception('Error updating email: $e');
     }
   }
@@ -271,13 +267,13 @@ class FirebaseAuthService {
         throw Exception('No authenticated user found');
       }
     } on FirebaseAuthException catch (e) {
-      print('🔴 Firebase error updating password: ${e.code} - ${e.message}');
+      print(' Firebase error updating password: ${e.code} - ${e.message}');
       if (e.code == 'requires-recent-login') {
         throw Exception('Please log in again before changing your password.');
       }
       throw Exception(e.message ?? 'Error updating password');
     } catch (e) {
-      print('🔴 Error updating password: $e');
+      print(' Error updating password: $e');
       throw Exception('Error updating password: $e');
     }
   }
@@ -288,10 +284,10 @@ class FirebaseAuthService {
       final user = _auth.currentUser;
       if (user != null) {
         await user.reload();
-        print('✅ Current user refreshed');
+        print(' Current user refreshed');
       }
     } catch (e) {
-      print('⚠️ Error refreshing current user: $e');
+      print(' Error refreshing current user: $e');
     }
   }
 }

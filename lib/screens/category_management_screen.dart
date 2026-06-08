@@ -77,7 +77,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         // Add new category
         await _categoryService.addUserCategory(uid: _uid, name: name);
         if (mounted) {
-          _showSnackBar('✅ Category added');
+          _showSnackBar(' Category added');
         }
       } else {
         // Update existing category
@@ -87,12 +87,12 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           newName: name,
         );
         if (mounted) {
-          _showSnackBar('✅ Category updated');
+          _showSnackBar(' Category updated');
         }
       }
     } on AppException catch (e) {
       if (mounted) {
-        _showSnackBar('❌ ${e.message}');
+        _showSnackBar(' ${e.message}');
       }
     }
   }
@@ -118,11 +118,11 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                   categoryId: category.id,
                 );
                 if (mounted) {
-                  _showSnackBar('✅ Category deleted');
+                  _showSnackBar(' Category deleted');
                 }
               } on AppException catch (e) {
                 if (mounted) {
-                  _showSnackBar('❌ ${e.message}');
+                  _showSnackBar(' ${e.message}');
                 }
               }
             },

@@ -56,20 +56,43 @@ class ExpenseProvider with ChangeNotifier {
     return map;
   }
 
+  /// Total spending for the current calendar month only.
+  double get currentMonthSpending {
+    final now = DateTime.now();
+    return _expenses
+        .where((e) => e.date.year == now.year && e.date.month == now.month)
+        .fold(0.0, (sum, e) => sum + e.amount);
+  }
+
+  /// Per-category spending totals for the current month.
+  ///
+  /// Used by the analysis API to build the request payload.
+  Map<String, double> get spendingByCategory {
+    final now = DateTime.now();
+    final map = <String, double>{};
+    for (final e in _expenses) {
+      if (e.date.year == now.year && e.date.month == now.month) {
+        map[e.categoryId] = (map[e.categoryId] ?? 0.0) + e.amount;
+      }
+    }
+    return map;
+  }
+
   // ─── Stream subscription ──────────────────────────────────────────────────
 
   /// Starts listening to real-time expense updates for [uid].
   ///
   /// Any existing subscription is cancelled first, preventing duplicate
   /// listeners on hot-reload or repeated auth-state changes.
-  void startListening(String uid) => _startListeningInternal(uid, silent: false);
+  void startListening(String uid) =>
+      _startListeningInternal(uid, silent: false);
 
   /// Internal implementation that separates first-start (shows spinner) from
   /// silent reconnects (keeps existing data visible while reconnecting).
   void _startListeningInternal(String uid, {required bool silent}) {
     // ── Guard: abort if uid is empty ───────────────────────────────────────
     if (uid.isEmpty) {
-      debugPrint('⚠️  ExpenseProvider.startListening: uid is empty, abort.');
+      debugPrint(' ExpenseProvider.startListening: uid is empty, abort.');
       return;
     }
 
@@ -89,7 +112,7 @@ class ExpenseProvider with ChangeNotifier {
     notifyListeners();
 
     debugPrint(
-      '👂 ExpenseProvider.startListening → uid=$uid${silent ? " (reconnect)" : ""}',
+      ' ExpenseProvider.startListening → uid=$uid${silent ? " (reconnect)" : ""}',
     );
 
     _subscription = _service
@@ -112,13 +135,13 @@ class ExpenseProvider with ChangeNotifier {
               _errorMessage = error.message;
               _errorCode = error.code;
               debugPrint(
-                '⚠️  ExpenseProvider stream error [${error.code.name}]: '
+                '  ExpenseProvider stream error [${error.code.name}]: '
                 '${error.message}',
               );
             } else {
               _errorMessage = AppException.messageFor(AppErrorCode.unknown);
               _errorCode = AppErrorCode.unknown;
-              debugPrint('⚠️  ExpenseProvider stream unexpected error: $error');
+              debugPrint('  ExpenseProvider stream unexpected error: $error');
             }
 
             notifyListeners();

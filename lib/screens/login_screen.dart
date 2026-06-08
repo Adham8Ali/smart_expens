@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       final errorMessage = e.toString();
-      print('🔴 Login Screen: Login error: $errorMessage');
+      print(' Login Screen: Login error: $errorMessage');
 
       if (mounted) {
         _showErrorDialog(
@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       final errorMessage = e.toString();
-      print('🔴 Login Screen: Password reset error: $errorMessage');
+      print('Login Screen: Password reset error: $errorMessage');
 
       if (mounted) {
         _showErrorDialog(errorMessage.replaceFirst('Exception: ', ''));

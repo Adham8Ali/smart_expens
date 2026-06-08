@@ -144,7 +144,7 @@ class ExpenseService {
   /// One-time fetch of all expenses for [uid], newest first.
   Future<List<ExpenseModel>> getAllExpenses(String uid) async {
     try {
-      debugPrint('📖 ExpenseService.getAllExpenses → uid=$uid');
+      debugPrint(' ExpenseService.getAllExpenses → uid=$uid');
       final snapshot = await _col(uid).orderBy('date', descending: true).get();
       final list = snapshot.docs
           .map((d) => ExpenseModel.fromMap(d.data()))
@@ -201,7 +201,7 @@ class ExpenseService {
     ).subtract(const Duration(milliseconds: 1));
 
     debugPrint(
-      '👂 ExpenseService.expensesStreamForMonth → uid=$uid '
+      ' ExpenseService.expensesStreamForMonth → uid=$uid '
       '${start.toIso8601String()} → ${end.toIso8601String()}',
     );
 

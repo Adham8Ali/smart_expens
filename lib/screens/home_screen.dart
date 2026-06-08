@@ -1,48 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_expens/providers/budget_provider.dart';
 import 'package:smart_expens/providers/user_provider.dart';
 import 'package:smart_expens/providers/expense_provider.dart';
 import 'package:smart_expens/screens/account_screen.dart';
+import 'package:smart_expens/services/chart_service.dart';
+import 'package:smart_expens/widgets/budget_progress_widget.dart';
 import 'package:smart_expens/widgets/custom_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:math';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
+  static const ChartService _chartService = ChartService();
 
-class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final currentUser = userProvider.currentUser;
     final expenseProvider = Provider.of<ExpenseProvider>(context);
-    final double monthlySpending = expenseProvider.totalAmount;
-    final double monthlyBudget =
-        Provider.of<UserProvider>(context).currentUser?.monthlyBudget ?? 0.0;
-    final double progress = monthlyBudget == 0
-        ? 0
-        : monthlySpending / monthlyBudget;
+    final budgetProvider = Provider.of<BudgetProvider>(context);
 
-    // Chart data for last 6 months
-    final monthsCount = 6;
-    final now = DateTime.now();
-    final monthDates = List.generate(
-      monthsCount,
-      (i) => DateTime(now.year, now.month - (monthsCount - 1 - i), 1),
+    final double monthlyBudget = budgetProvider.monthlyBudget;
+    final double currentSpending = expenseProvider.currentMonthSpending;
+    final double remainingBudget = (monthlyBudget - currentSpending).clamp(
+      0,
+      double.infinity,
     );
 
-    final List<FlSpot> spots = [];
-    for (var i = 0; i < monthDates.length; i++) {
-      final d = monthDates[i];
-      final total = expenseProvider.expenses
-          .where((e) => e.date.year == d.year && e.date.month == d.month)
-          .fold(0.0, (s, e) => s + e.amount);
-      spots.add(FlSpot(i.toDouble(), total));
-    }
+    // Shared analytics — same source as Reports screen
+    final comparison = _chartService.monthOverMonth(expenseProvider.expenses);
+    final spendingChangeColor = comparison.isIncrease
+        ? Colors.red
+        : Colors.green;
+
+    // Chart data for last 6 months — same ChartService as Reports
+    final chartData = _chartService.getChartData(expenseProvider.expenses, 6);
+    final List<FlSpot> spots = List.generate(
+      chartData.length,
+      (i) => FlSpot(i.toDouble(), chartData[i].value),
+    );
 
     final chartMaxY = (spots.isEmpty)
         ? 100.0
@@ -54,13 +52,11 @@ class _HomeScreenState extends State<HomeScreen> {
         leading: Padding(
           padding: const EdgeInsets.only(left: 10),
           child: CircleAvatar(
-            radius: 25,
-            // backgroundColor: Color(0xff115E38),
+            radius: 20,
             backgroundImage: AssetImage('assets/images/Center.png'),
           ),
         ),
         leadingWidth: 60,
-        // leadingPadding: 10,
         title: Text(
           'Smart Spend',
           style: TextStyle(
@@ -70,7 +66,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         backgroundColor: Colors.white,
         scrolledUnderElevation: 0,
-
         centerTitle: true,
         actions: [
           IconButton(
@@ -80,7 +75,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 MaterialPageRoute(builder: (context) => const AccountScreen()),
               );
             },
-
             icon: CircleAvatar(
               radius: 30,
               backgroundImage: currentUser?.image != null
@@ -99,11 +93,9 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // container for monthly spending
-              // container 1
+              // Container 1 — Monthly Spending
               SizedBox(height: 15),
               CustomCard(
-                // height: 170,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -118,7 +110,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         Spacer(),
-
                         CircleAvatar(
                           radius: 25,
                           backgroundColor: Colors.green.shade100,
@@ -130,11 +121,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-
                     SizedBox(height: 8),
-                    // shoud edit
                     Text(
-                      monthlySpending.toStringAsFixed(2),
+                      '\$${currentSpending.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 30,
                         color: Color(0xff115E38),
@@ -150,42 +139,52 @@ class _HomeScreenState extends State<HomeScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.red.shade100,
+                            color: spendingChangeColor.withAlpha(30),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            "+12% ",
-                            style: TextStyle(color: Colors.red),
+                            '${comparison.changeText} ',
+                            style: TextStyle(color: spendingChangeColor),
                           ),
                         ),
                         SizedBox(width: 10),
-                        Text("vs last month"),
+                        Text('vs last month'),
                       ],
                     ),
                   ],
                 ),
               ),
+
               SizedBox(height: 10),
-              // container for monthly budget
-              // container 2
+
+              // Container 2 — Monthly Budget with live data
               CustomCard(
-                height: 210,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Monthly Budget',
-                      style: TextStyle(
-                        fontSize: 21,
-                        color: Color(0xff6B7280),
-                        fontWeight: FontWeight.w400,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Monthly Budget',
+                          style: TextStyle(
+                            fontSize: 21,
+                            color: Color(0xff6B7280),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        Text(
+                          '\$${remainingBudget.toStringAsFixed(0)} left',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xff6B7280),
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: 8),
-
-                    // shoud edit
                     Text(
-                      monthlyBudget.toStringAsFixed(0),
+                      '\$${monthlyBudget.toStringAsFixed(0)}',
                       style: TextStyle(
                         fontSize: 30,
                         color: Color(0xff115E38),
@@ -193,76 +192,33 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Used",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Color(0xff6B7280),
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        Text(
-                          "${(progress * 100).toStringAsFixed(1)}%",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Color(0xff6B7280),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
 
-                    SizedBox(height: 10),
-
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 10,
-                        backgroundColor: Colors.grey[300],
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.orange,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    // shoud edit
-                    Text(
-                      "Remaining ${monthlyBudget - monthlySpending} ",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Color(0xff6B7280),
-                        fontWeight: FontWeight.w400,
-                      ),
+                    // Reusable Budget Progress Widget
+                    BudgetProgressWidget(
+                      monthlyBudget: monthlyBudget,
+                      currentSpending: currentSpending,
                     ),
                   ],
                 ),
               ),
 
               SizedBox(height: 10),
-              // container for spending trend
-              // container 3
+
+              // Container 3 — Spending Trend Chart
               CustomCard(
                 height: 400,
                 child: Column(
-                  // crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    /// Header
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          "Spending Trend",
+                          'Spending Trend',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-
-                        /// Dropdown
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -274,17 +230,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           child: const Row(
                             children: [
-                              Text("Last 6 Months"),
+                              Text('Last 6 Months'),
                               Icon(Icons.keyboard_arrow_down),
                             ],
                           ),
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 20),
 
-                    /// Chart
+                    // Chart
                     SizedBox(
                       height: 280,
                       child: LineChart(
@@ -297,16 +252,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: Colors.grey.shade300,
                               strokeWidth: 1,
                             ),
-                          ),
-                          extraLinesData: ExtraLinesData(
-                            verticalLines: [
-                              VerticalLine(
-                                x: 0,
-                                color: Colors.red,
-                                strokeWidth: 2,
-                                dashArray: [5, 5],
-                              ),
-                            ],
                           ),
                           titlesData: FlTitlesData(
                             leftTitles: AxisTitles(
@@ -326,16 +271,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                 reservedSize: 28,
                                 getTitlesWidget: (value, meta) {
                                   final idx = value.toInt();
-                                  if (idx < 0 || idx >= monthDates.length) {
-                                    return const Text("");
+                                  if (idx < 0 || idx >= chartData.length) {
+                                    return const Text('');
                                   }
-                                  final labelDate = monthDates[idx];
                                   return Text(
-                                    '${labelDate.month}/${labelDate.year}',
-                                    style: const TextStyle(fontSize: 12),
+                                    chartData[idx].label.split(' ').first,
+                                    style: const TextStyle(fontSize: 11),
                                   );
                                 },
                               ),
+                            ),
+                            rightTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            topTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
                             ),
                           ),
                           borderData: FlBorderData(
@@ -346,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           minX: 0,
-                          maxX: (spots.isEmpty) ? 5 : spots.length - 1,
+                          maxX: spots.isEmpty ? 5 : spots.length - 1,
                           minY: 0,
                           maxY: chartMaxY,
                           lineBarsData: [
@@ -374,15 +324,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           lineTouchData: LineTouchData(
                             enabled: true,
                             touchTooltipData: LineTouchTooltipData(
-                              getTooltipItems: (touchedSpots) => touchedSpots.map((
-                                ts,
-                              ) {
-                                final d = monthDates[ts.x.toInt()];
-                                return LineTooltipItem(
-                                  '${d.month}/${d.year}: ${ts.y.toStringAsFixed(2)}',
-                                  const TextStyle(color: Colors.white),
-                                );
-                              }).toList(),
+                              getTooltipItems: (touchedSpots) =>
+                                  touchedSpots.map((ts) {
+                                    final idx = ts.x.toInt();
+                                    final label = idx < chartData.length
+                                        ? chartData[idx].label
+                                        : '';
+                                    return LineTooltipItem(
+                                      '$label: \$${ts.y.toStringAsFixed(2)}',
+                                      const TextStyle(color: Colors.white),
+                                    );
+                                  }).toList(),
                             ),
                           ),
                         ),

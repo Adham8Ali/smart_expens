@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_expens/providers/budget_provider.dart';
 import 'package:smart_expens/providers/category_provider.dart';
 import 'package:smart_expens/providers/expense_provider.dart';
 import 'package:smart_expens/providers/user_provider.dart';
@@ -45,15 +46,18 @@ class _ExpenseListenerState extends State<ExpenseListener> {
 
     final expenseProvider = context.read<ExpenseProvider>();
     final categoryProvider = context.read<CategoryProvider>();
+    final budgetProvider = context.read<BudgetProvider>();
 
     if (uid != null && uid.isNotEmpty) {
       _activeUid = uid;
       expenseProvider.startListening(uid);
       categoryProvider.startListening(uid);
+      budgetProvider.startListening(uid);
     } else {
       _activeUid = null;
       expenseProvider.stopListening();
       categoryProvider.stopListening();
+      budgetProvider.stopListening();
     }
   }
 

@@ -18,7 +18,7 @@ class CategoryService {
   // ─── Private helpers ───────────────────────────────────────────────────────
 
   AppException _mapFirebase(FirebaseException e, String op) {
-    debugPrint('🔥 CategoryService[$op] code=${e.code} msg=${e.message}');
+    debugPrint(' CategoryService[$op] code=${e.code} msg=${e.message}');
     final code = AppException.codeFromFirestore(e.code);
     return AppException(
       message: AppException.messageFor(code),
@@ -31,7 +31,7 @@ class CategoryService {
 
   /// Seeds all predefined categories into Firestore using a batch write.
   ///
-  /// ⚠️ Requires an authenticated user — do NOT call from [main()].
+  ///  Requires an authenticated user — do NOT call from [main()].
   /// Safe to call multiple times; existing documents are merged (not replaced).
   Future<void> addAllCategories() async {
     try {
@@ -44,13 +44,13 @@ class CategoryService {
       }
       await batch.commit();
       debugPrint(
-        '✅ CategoryService: seeded ${CategoryModel.predefined.length} '
+        ' CategoryService: seeded ${CategoryModel.predefined.length} '
         'categories.',
       );
     } on FirebaseException catch (e) {
       throw _mapFirebase(e, 'addAllCategories');
     } catch (e) {
-      debugPrint('💥 CategoryService.addAllCategories unexpected: $e');
+      debugPrint(' CategoryService.addAllCategories unexpected: $e');
       throw AppException(
         message: AppException.messageFor(AppErrorCode.unknown),
         code: AppErrorCode.unknown,
@@ -73,7 +73,7 @@ class CategoryService {
 
       if (snapshot.docs.isEmpty) {
         debugPrint(
-          '⚠️  CategoryService.getAllCategories: collection empty, '
+          ' CategoryService.getAllCategories: collection empty, '
           'returning predefined list.',
         );
         return CategoryModel.predefined;
@@ -83,7 +83,7 @@ class CategoryService {
     } on FirebaseException catch (e) {
       throw _mapFirebase(e, 'getAllCategories');
     } catch (e) {
-      debugPrint('💥 CategoryService.getAllCategories unexpected: $e');
+      debugPrint(' CategoryService.getAllCategories unexpected: $e');
       throw AppException(
         message: AppException.messageFor(AppErrorCode.unknown),
         code: AppErrorCode.unknown,
@@ -112,7 +112,7 @@ class CategoryService {
     } on FirebaseException catch (e) {
       throw _mapFirebase(e, 'getCategoryById');
     } catch (e) {
-      debugPrint('💥 CategoryService.getCategoryById unexpected: $e');
+      debugPrint(' CategoryService.getCategoryById unexpected: $e');
       throw AppException(
         message: AppException.messageFor(AppErrorCode.unknown),
         code: AppErrorCode.unknown,
@@ -154,7 +154,7 @@ class CategoryService {
     required String name,
   }) async {
     try {
-      debugPrint('📝 CategoryService.addUserCategory → uid=$uid name=$name');
+      debugPrint('CategoryService.addUserCategory → uid=$uid name=$name');
       final categoryId = _firestore
           .collection(AppConstants.usersCollection)
           .doc(uid)
@@ -171,12 +171,12 @@ class CategoryService {
           .doc(categoryId)
           .set(category.toMap());
 
-      debugPrint('✅ CategoryService.addUserCategory done → id=$categoryId');
+      debugPrint(' CategoryService.addUserCategory done → id=$categoryId');
       return categoryId;
     } on FirebaseException catch (e) {
       throw _mapFirebase(e, 'addUserCategory');
     } catch (e) {
-      debugPrint('💥 CategoryService.addUserCategory unexpected: $e');
+      debugPrint(' CategoryService.addUserCategory unexpected: $e');
       throw AppException(
         message: AppException.messageFor(AppErrorCode.unknown),
         code: AppErrorCode.unknown,
@@ -193,7 +193,7 @@ class CategoryService {
   }) async {
     try {
       debugPrint(
-        '✏️ CategoryService.updateUserCategory → uid=$uid id=$categoryId name=$newName',
+        ' CategoryService.updateUserCategory → uid=$uid id=$categoryId name=$newName',
       );
       await _firestore
           .collection(AppConstants.usersCollection)
@@ -222,7 +222,7 @@ class CategoryService {
   }) async {
     try {
       debugPrint(
-        '🗑️ CategoryService.deleteUserCategory → uid=$uid id=$categoryId',
+        ' CategoryService.deleteUserCategory → uid=$uid id=$categoryId',
       );
       await _firestore
           .collection(AppConstants.usersCollection)
@@ -231,11 +231,11 @@ class CategoryService {
           .doc(categoryId)
           .delete();
 
-      debugPrint('✅ CategoryService.deleteUserCategory done → id=$categoryId');
+      debugPrint(' CategoryService.deleteUserCategory done → id=$categoryId');
     } on FirebaseException catch (e) {
       throw _mapFirebase(e, 'deleteUserCategory');
     } catch (e) {
-      debugPrint('💥 CategoryService.deleteUserCategory unexpected: $e');
+      debugPrint(' CategoryService.deleteUserCategory unexpected: $e');
       throw AppException(
         message: AppException.messageFor(AppErrorCode.unknown),
         code: AppErrorCode.unknown,
