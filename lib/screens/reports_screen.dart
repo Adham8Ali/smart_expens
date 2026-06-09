@@ -38,40 +38,32 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final analysisProvider = Provider.of<AnalysisProvider>(context);
     final expenses = expenseProvider.expenses;
 
-    // Shared analytics — same source as Home screen (Feature 2)
-    final comparison = _chartService.monthOverMonth(expenses);
-    final foodComparison = _chartService.categoryMonthOverMonth(
+    // ─── Biggest Spending Card data ──────────────────────────────────────────
+    final biggestSpending = _chartService.biggestSpendingCategory(expenses);
+
+    // ─── Remaining Balance Card data ─────────────────────────────────────────
+    final monthlyBudget = budgetProvider.monthlyBudget;
+    final balanceComparison = _chartService.remainingBalanceComparison(
       expenses,
-      'food',
+      monthlyBudget,
     );
-    final dailyAvg = _chartService.dailyAverage(expenses);
-    final txCount = _chartService.currentMonthTransactionCount(expenses);
-
-    final spendingChangeColor = comparison.isIncrease
+    final remainingBalance = balanceComparison.currentMonthTotal;
+    final balanceChangeColor = balanceComparison.isIncrease
         ? Colors.green
         : Colors.red;
-    final spendingBadgeText =
-        '${comparison.changeText} ${comparison.isIncrease ? 'increase' : 'decrease'}';
+    final balanceBadgeText = '${balanceComparison.changeText} vs last month';
 
-    final foodChangeColor = foodComparison.isIncrease
-        ? Colors.green
-        : Colors.red;
-    final foodBadgeText = '${foodComparison.changeText} vs last month';
+    // ─── Average Spending Card data ──────────────────────────────────────────
+    final avgMonthly = _chartService.averageMonthlySpending(expenses);
+    final avgVsBudgetPercent = monthlyBudget > 0
+        ? ((avgMonthly - monthlyBudget) / monthlyBudget) * 100.0
+        : 0.0;
+    final avgBadgeText = monthlyBudget <= 0
+        ? '+0% vs target'
+        : '${avgVsBudgetPercent >= 0 ? '+' : ''}${avgVsBudgetPercent.toStringAsFixed(0)}% vs target';
+    final avgBadgeColor = avgVsBudgetPercent >= 0 ? Colors.red : Colors.green;
 
     final formatter = NumberFormat.decimalPattern();
-
-    // Target comparison (daily)
-    final monthlyBudget = budgetProvider.monthlyBudget;
-    final targetDaily = monthlyBudget > 0 ? monthlyBudget / 30.0 : 0.0;
-    final targetDiffPercent = (targetDaily == 0)
-        ? 0.0
-        : ((dailyAvg - targetDaily) / targetDaily) * 100.0;
-    final targetBadgeText = (targetDaily == 0)
-        ? '+0% vs target'
-        : '${targetDiffPercent >= 0 ? '+' : ''}${targetDiffPercent.toStringAsFixed(0)}% vs target';
-    final targetBadgeColor = targetDiffPercent >= 0
-        ? Colors.green
-        : Colors.orange;
 
     // Chart data from shared ChartService (Feature 2)
     final chartData = _chartService.getChartData(expenses, _monthCount);
@@ -88,22 +80,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 // Header
                 Row(
                   children: [
-                    _circleBtn(Icons.arrow_back),
-                    const SizedBox(width: 15),
                     const Expanded(
-                      child: Text(
-                        'Reports',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Reports',
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
-
-                // Daily Average Card (Feature 4: flexible height)
+                // Biggest Spending Card — dynamic highest category
                 CustomCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,7 +103,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Biggest spending',
+                            'Biggest Spending',
                             style: TextStyle(
                               fontSize: 21,
                               color: Color(0xff6B7280),
@@ -132,7 +123,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        formatter.format(dailyAvg.round()),
+                        biggestSpending != null
+                            ? formatter.format(
+                                biggestSpending.totalAmount.round(),
+                              )
+                            : '0',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -140,34 +135,48 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         ),
                       ),
                       SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: foodChangeColor.withAlpha(30),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                foodBadgeText,
-                                style: TextStyle(color: foodChangeColor),
-                                overflow: TextOverflow.ellipsis,
+                      if (biggestSpending != null) ...[
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      (biggestSpending.isIncrease
+                                              ? Colors.red
+                                              : Colors.green)
+                                          .withAlpha(30),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '${biggestSpending.changeText} vs last month',
+                                  style: TextStyle(
+                                    color: biggestSpending.isIncrease
+                                        ? Colors.red
+                                        : Colors.green,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ),
-                          ),
-                          SizedBox(width: 10),
-                          Text('Food & Dining'),
-                        ],
-                      ),
+                            SizedBox(width: 10),
+                            Text(biggestSpending.categoryDisplayName),
+                          ],
+                        ),
+                      ] else
+                        Text(
+                          'No spending data',
+                          style: TextStyle(color: Color(0xff6B7280)),
+                        ),
                     ],
                   ),
                 ),
 
-                // Total Spending Card
+                // Remaining Balance Card
                 CustomCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,7 +185,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Total Spending',
+                            'Remaining Balance',
                             style: TextStyle(
                               fontSize: 21,
                               color: Color(0xff6B7280),
@@ -192,7 +201,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        formatter.format(comparison.currentMonthTotal.round()),
+                        formatter.format(remainingBalance.round()),
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -209,12 +218,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: spendingChangeColor.withAlpha(30),
+                                color: balanceChangeColor.withAlpha(30),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                spendingBadgeText,
-                                style: TextStyle(color: spendingChangeColor),
+                                balanceBadgeText,
+                                style: TextStyle(color: balanceChangeColor),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -227,7 +236,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ),
                 ),
 
-                // Transactions Card
+                // Average Spending Card
                 CustomCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,7 +245,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'average spending',
+                            'Average Spending',
                             style: TextStyle(
                               fontSize: 21,
                               color: Color(0xff6B7280),
@@ -256,7 +265,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        formatter.format(txCount),
+                        formatter.format(avgMonthly.round()),
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -273,12 +282,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: targetBadgeColor.withAlpha(30),
+                                color: avgBadgeColor.withAlpha(30),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                targetBadgeText,
-                                style: TextStyle(color: targetBadgeColor),
+                                avgBadgeText,
+                                style: TextStyle(color: avgBadgeColor),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -368,8 +377,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               ? null
                               : () => _triggerAnalysis(
                                   analysisProvider,
-                                  budgetProvider,
                                   expenseProvider,
+                                  monthlyBudget,
                                 ),
                           icon: analysisProvider.isLoading
                               ? const SizedBox(
@@ -633,24 +642,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   void _triggerAnalysis(
     AnalysisProvider analysisProvider,
-    BudgetProvider budgetProvider,
     ExpenseProvider expenseProvider,
+    double monthlyBudget,
   ) {
-    final budget = budgetProvider.monthlyBudget;
-    if (budget <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please set a monthly budget first.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
     analysisProvider
         .fetchAnalysis(
-          monthlyBudget: budget,
           expenses: expenseProvider.expenses,
+          salary: monthlyBudget,
         )
         .then((_) {
           if (!mounted) return;

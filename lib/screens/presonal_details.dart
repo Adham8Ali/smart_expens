@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_expens/models/user_model.dart';
 import 'package:smart_expens/providers/user_provider.dart';
@@ -11,17 +13,209 @@ class PersonalDetailsScreen extends StatefulWidget {
 }
 
 class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
+  final ImagePicker _picker = ImagePicker();
+  XFile? _localImageXFile;
+  bool _isImageUploading = false;
+
+  Future<void> _pickAndUploadImage(UserProvider userProvider) async {
+    if (_isImageUploading) {
+      debugPrint('PersonalDetailsScreen: Blocked image picker tap, upload already in progress.');
+      return;
+    }
+
+    final uid = userProvider.currentUid;
+    if (uid == null || uid.trim().isEmpty) {
+      debugPrint('PersonalDetailsScreen: Blocked image upload flow. Current user UID is null or empty.');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to upload image: You must be logged in to update your profile picture.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+        maxWidth: 800,
+        maxHeight: 800,
+      );
+
+      if (pickedFile == null) {
+        debugPrint('PersonalDetailsScreen: User canceled image selection.');
+        return;
+      }
+
+      debugPrint('PersonalDetailsScreen: User selected image path: ${pickedFile.path}');
+      debugPrint('PersonalDetailsScreen: User UID: $uid');
+
+      // Guard setState after async gap
+      if (!mounted) return;
+      setState(() {
+        _localImageXFile = pickedFile;
+        _isImageUploading = true;
+      });
+
+      debugPrint('PersonalDetailsScreen: Initiating profile image upload via UserProvider.');
+      // Pass XFile directly — works on Web + Mobile + Desktop
+      await userProvider.uploadProfileImage(pickedFile);
+
+      debugPrint('PersonalDetailsScreen: Profile image upload completed successfully.');
+
+      if (mounted) {
+        setState(() {
+          _isImageUploading = false;
+          _localImageXFile = null; // Clear local to reload photoURL from userProvider
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile picture updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('PersonalDetailsScreen: Error occurred during pick and upload flow: $e');
+      if (mounted) {
+        setState(() {
+          _isImageUploading = false;
+          _localImageXFile = null;
+        });
+
+        final cleanErrorMessage = e.toString()
+            .replaceAll('Exception: ', '')
+            .replaceAll('Failed to upload image: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload image: $cleanErrorMessage'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final currentUser = userProvider.currentUser;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('Personal Details'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Personal Details'),
+        centerTitle: true,
+        scrolledUnderElevation: 0,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // Centered Profile Image Section
+            Center(
+              child: Stack(
+                children: [
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.green, width: 2),
+                      color: Colors.grey.shade100,
+                    ),
+                    child: ClipOval(
+                      child: _isImageUploading
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.green,
+                              ),
+                            )
+                          : _localImageXFile != null
+                              ? FutureBuilder<Uint8List>(
+                                  future: _localImageXFile!.readAsBytes(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.hasData) {
+                                      return Image.memory(
+                                        snapshot.data!,
+                                        fit: BoxFit.cover,
+                                        width: 120,
+                                        height: 120,
+                                      );
+                                    }
+                                    return const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.green,
+                                      ),
+                                    );
+                                  },
+                                )
+                              : currentUser?.profileImage != null &&
+                                      currentUser!.profileImage!.isNotEmpty
+                                  ? Image.network(
+                                      currentUser.profileImage!,
+                                      fit: BoxFit.cover,
+                                      width: 120,
+                                      height: 120,
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return const Center(
+                                          child: CircularProgressIndicator(
+                                            color: Colors.green,
+                                          ),
+                                        );
+                                      },
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          const Icon(Icons.person, size: 60, color: Colors.grey),
+                                    )
+                                  : const Icon(Icons.person, size: 60, color: Colors.grey),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: () {
+                        if (currentUser == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please wait until user data loads.')),
+                          );
+                          return;
+                        }
+                        if (_isImageUploading) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Profile picture upload is already in progress.'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          return;
+                        }
+                        _pickAndUploadImage(userProvider);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _isImageUploading ? Colors.grey : Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.camera_alt,
+                          color: _isImageUploading ? Colors.white70 : Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
             buildItem(
               'Name',
               currentUser?.name ?? 'Loading...',
@@ -63,10 +257,18 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                     );
                     return;
                   }
+                  if (_isImageUploading) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please wait for the image upload to complete.'),
+                      ),
+                    );
+                    return;
+                  }
                   _showEditNameDialog(context, currentUser, userProvider);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green, // زرار أخضر
+                  backgroundColor: Colors.green, // green button
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -74,7 +276,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 ),
                 child: const Text(
                   'Edit Name',
-                  style: TextStyle(color: Colors.white), // الكلام أبيض
+                  style: TextStyle(color: Colors.white), // white text
                 ),
               ),
             ),
@@ -99,11 +301,11 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white, // خلفية غامقة عشان الأبيض يبان
+            color: Colors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: Colors.black, // الحواف سوداء
-              width: 1.5, // سمك البوردر (تقدر تزوده أو تقلله)
+              color: Colors.black,
+              width: 1.5,
             ),
           ),
           child: Row(
@@ -169,19 +371,38 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 }
                 final navigator = Navigator.of(context);
                 final messenger = ScaffoldMessenger.of(context);
+
+                // Wait for image upload to complete if still in progress
+                if (_isImageUploading) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Waiting for image upload to complete...'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                  while (_isImageUploading) {
+                    await Future.delayed(const Duration(milliseconds: 100));
+                  }
+                }
+
                 try {
                   await userProvider.updateProfile(displayName: newName);
+                  await userProvider.refreshUserData();
                   if (!mounted) return;
                   navigator.pop();
                   messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Profile updated successfully'),
+                      backgroundColor: Colors.green,
                     ),
                   );
                 } catch (e) {
                   if (!mounted) return;
                   messenger.showSnackBar(
-                    SnackBar(content: Text('Update failed: $e')),
+                    SnackBar(
+                      content: Text('Update failed: $e'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               },

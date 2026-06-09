@@ -32,12 +32,65 @@ class MonthComparison {
   });
 }
 
+/// Result of the biggest spending category analysis.
+class BiggestSpending {
+  /// The category ID (e.g. 'food').
+  final String categoryId;
+
+  /// Human-readable display name (e.g. 'Food & Dining').
+  final String categoryDisplayName;
+
+  /// Total amount spent in this category for the current month.
+  final double totalAmount;
+
+  /// Percentage change vs the same category last month.
+  final double changePercent;
+
+  /// Formatted change text (e.g. '+12.0%').
+  final String changeText;
+
+  /// True if spending increased vs last month.
+  final bool isIncrease;
+
+  const BiggestSpending({
+    required this.categoryId,
+    required this.categoryDisplayName,
+    required this.totalAmount,
+    required this.changePercent,
+    required this.changeText,
+    required this.isIncrease,
+  });
+}
+
 /// Pure computation service for analytics and chart data.
 ///
 /// Operates entirely on in-memory expense lists — no Firestore access.
 /// Both HomeScreen and ReportsScreen consume this single source of truth.
 class ChartService {
   const ChartService();
+
+  // ─── Category Display Names ───────────────────────────────────────────────
+
+  /// Static mapping from category IDs to human-readable display names.
+  static const Map<String, String> _categoryDisplayNames = {
+    'food': 'Food & Dining',
+    'shopping': 'Shopping',
+    'transport': 'Transport',
+    'bills': 'Bills',
+    'drink': 'Drink',
+    'health': 'Health',
+    'entertainment': 'Entertainment',
+  };
+
+  /// Returns the display name for a category ID.
+  /// Falls back to a title-cased version of the ID for unknown categories.
+  static String categoryDisplayName(String categoryId) {
+    return _categoryDisplayNames[categoryId.toLowerCase()] ??
+        categoryId
+            .split('_')
+            .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+            .join(' ');
+  }
 
   // ─── Shared Analytics (Feature 2 + 7) ─────────────────────────────────────
 
@@ -109,6 +162,110 @@ class ChartService {
     return MonthComparison(
       currentMonthTotal: current,
       lastMonthTotal: previous,
+      changePercent: percent,
+      changeText: text,
+      isIncrease: percent >= 0,
+    );
+  }
+
+  /// Finds the category with the highest total spending in the current month.
+  ///
+  /// Returns `null` if there are no expenses in the current month.
+  BiggestSpending? biggestSpendingCategory(List<ExpenseModel> expenses) {
+    final now = DateTime.now();
+    final last = DateTime(now.year, now.month - 1, 1);
+
+    // Group current month expenses by category
+    final categoryTotals = <String, double>{};
+    for (final e in expenses) {
+      if (e.date.year == now.year && e.date.month == now.month) {
+        categoryTotals[e.categoryId] =
+            (categoryTotals[e.categoryId] ?? 0.0) + e.amount;
+      }
+    }
+
+    if (categoryTotals.isEmpty) return null;
+
+    // Find the category with the highest total
+    String topCategoryId = categoryTotals.keys.first;
+    double topAmount = categoryTotals.values.first;
+    for (final entry in categoryTotals.entries) {
+      if (entry.value > topAmount) {
+        topCategoryId = entry.key;
+        topAmount = entry.value;
+      }
+    }
+
+    // Compare with the same category last month
+    final lastMonthAmount = expenses
+        .where((e) =>
+            e.categoryId == topCategoryId &&
+            e.date.year == last.year &&
+            e.date.month == last.month)
+        .fold(0.0, (s, e) => s + e.amount);
+
+    final percent = lastMonthAmount == 0
+        ? 0.0
+        : ((topAmount - lastMonthAmount) / lastMonthAmount) * 100.0;
+    final text = lastMonthAmount == 0
+        ? '+0%'
+        : '${percent >= 0 ? '+' : ''}${percent.toStringAsFixed(1)}%';
+
+    return BiggestSpending(
+      categoryId: topCategoryId,
+      categoryDisplayName: categoryDisplayName(topCategoryId),
+      totalAmount: topAmount,
+      changePercent: percent,
+      changeText: text,
+      isIncrease: percent >= 0,
+    );
+  }
+
+  /// Calculates the average monthly spending across all months with transactions.
+  ///
+  /// Formula: (Total Spending Across All Months) / (Number of Months with Transactions)
+  /// Returns 0.0 if there are no expenses.
+  double averageMonthlySpending(List<ExpenseModel> expenses) {
+    if (expenses.isEmpty) return 0.0;
+
+    // Group expenses by (year, month)
+    final monthlyTotals = <String, double>{};
+    for (final e in expenses) {
+      final key = '${e.date.year}-${e.date.month}';
+      monthlyTotals[key] = (monthlyTotals[key] ?? 0.0) + e.amount;
+    }
+
+    if (monthlyTotals.isEmpty) return 0.0;
+
+    final totalAll = monthlyTotals.values.fold(0.0, (sum, v) => sum + v);
+    return totalAll / monthlyTotals.length;
+  }
+
+  /// Computes the remaining balance comparison between current and previous month.
+  ///
+  /// Remaining = monthlyBudget - totalExpenses
+  /// Returns a MonthComparison where currentMonthTotal = current remaining,
+  /// lastMonthTotal = previous remaining.
+  MonthComparison remainingBalanceComparison(
+    List<ExpenseModel> expenses,
+    double monthlyBudget,
+  ) {
+    final currentSpending = currentMonthTotal(expenses);
+    final lastSpending = lastMonthTotal(expenses);
+
+    final currentRemaining = monthlyBudget - currentSpending;
+    final lastRemaining = monthlyBudget - lastSpending;
+
+    final percent = lastRemaining == 0
+        ? 0.0
+        : ((currentRemaining - lastRemaining) / lastRemaining.abs()) * 100.0;
+    final text = lastRemaining == 0
+        ? '+0%'
+        : '${percent >= 0 ? '+' : ''}${percent.toStringAsFixed(1)}%';
+
+    return MonthComparison(
+      currentMonthTotal: currentRemaining,
+      lastMonthTotal: lastRemaining,
       changePercent: percent,
       changeText: text,
       isIncrease: percent >= 0,

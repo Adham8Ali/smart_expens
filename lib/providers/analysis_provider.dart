@@ -28,11 +28,11 @@ class AnalysisProvider with ChangeNotifier {
 
   /// Fetches a spending analysis from the external API.
   ///
-  /// Transforms the user's expenses and budget into the API format,
+  /// Transforms the user's expenses into the API format,
   /// sends the request, and caches the result.
   Future<void> fetchAnalysis({
-    required double monthlyBudget,
     required List<ExpenseModel> expenses,
+    required double salary,
   }) async {
     try {
       _isLoading = true;
@@ -40,8 +40,8 @@ class AnalysisProvider with ChangeNotifier {
       notifyListeners();
 
       final request = AnalysisRequestModel.fromExpenses(
-        monthlyBudget: monthlyBudget,
         expenses: expenses,
+        salary: salary,
       );
 
       debugPrint(' AnalysisProvider.fetchAnalysis → ${request.toJson()}');

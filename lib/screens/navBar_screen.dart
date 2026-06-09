@@ -90,7 +90,7 @@ class _NavbarScreenState extends State<NavbarScreen> {
                   // الجزء اليمين
                   Row(
                     children: [
-                      buildItem(Icons.analytics, "ُexpenses", 2),
+                      buildItem(Icons.analytics, "Expenses", 2),
                       const SizedBox(width: 30),
                       buildItem(Icons.account_circle, "Account", 3),
                     ],
@@ -287,30 +287,28 @@ void showAddExpenseDialog(BuildContext context) {
                         return;
                       }
 
-                      final success = await context
-                          .read<ExpenseProvider>()
-                          .addExpense(
+                      final expenseProvider = context.read<ExpenseProvider>();
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
+
+                      final success = await expenseProvider.addExpense(
                             uid: uid,
                             amount: amount,
                             categoryId: selectedCategoryId!,
                             date: selectedDate!,
                           );
 
-                      if (!context.mounted) return;
-
                       if (success) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        navigator.pop();
+                        messenger.showSnackBar(
                           const SnackBar(
                             content: Text('Expense added successfully!'),
                             backgroundColor: Color(0xff115E38),
                           ),
                         );
                       } else {
-                        final err = context
-                            .read<ExpenseProvider>()
-                            .errorMessage;
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        final err = expenseProvider.errorMessage;
+                        messenger.showSnackBar(
                           SnackBar(
                             content: Text(err ?? 'Failed to add expense.'),
                             backgroundColor: Colors.red,

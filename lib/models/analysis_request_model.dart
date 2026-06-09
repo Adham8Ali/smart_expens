@@ -3,7 +3,7 @@ import 'package:smart_expens/models/expense_model.dart';
 /// Maps user spending data to the external analysis API request format.
 ///
 /// API endpoint: POST /analyze
-/// The API expects `salary` (monthly budget) and per-category totals.
+/// The API expects per-category totals for generating recommendations.
 class AnalysisRequestModel {
   final double salary;
   final double food;
@@ -25,19 +25,22 @@ class AnalysisRequestModel {
     required this.entertainment,
   });
 
-  /// Transforms Firestore expense data + budget into the API request format.
+  /// Transforms Firestore expense data into the API request format.
   factory AnalysisRequestModel.fromExpenses({
-    required double monthlyBudget,
     required List<ExpenseModel> expenses,
+    required double salary,
   }) {
+    final now = DateTime.now();
     final categoryTotals = <String, double>{};
     for (final expense in expenses) {
-      categoryTotals[expense.categoryId] =
-          (categoryTotals[expense.categoryId] ?? 0.0) + expense.amount;
+      if (expense.date.year == now.year && expense.date.month == now.month) {
+        categoryTotals[expense.categoryId] =
+            (categoryTotals[expense.categoryId] ?? 0.0) + expense.amount;
+      }
     }
 
     return AnalysisRequestModel(
-      salary: monthlyBudget,
+      salary: salary,
       food: categoryTotals['food'] ?? 0.0,
       drink: categoryTotals['drink'] ?? 0.0,
       shopping: categoryTotals['shopping'] ?? 0.0,

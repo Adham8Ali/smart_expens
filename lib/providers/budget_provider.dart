@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:smart_expens/core/errors/app_exception.dart';
 import 'package:smart_expens/services/budget_service.dart';
@@ -9,10 +10,34 @@ import 'package:smart_expens/services/budget_service.dart';
 /// Listens to budget changes on the user document so the UI always
 /// reflects the latest value — even if it was changed from another device.
 class BudgetProvider with ChangeNotifier {
+  BudgetProvider() {
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
+      _onAuthStateChanged,
+    );
+  }
+
   final BudgetService _service = BudgetService();
+
+  /// Subscription to FirebaseAuth state changes — drives stream lifecycle.
+  StreamSubscription<User?>? _authSubscription;
 
   StreamSubscription<double?>? _subscription;
   String? _activeUid;
+
+  // ─── Auth callback ──────────────────────────────────────────────────────────
+
+  /// Called whenever auth state changes (login / logout / token refresh).
+  void _onAuthStateChanged(User? user) {
+    if (user != null && user.uid.isNotEmpty) {
+      if (_activeUid != user.uid) {
+        debugPrint('🔑 BudgetProvider: auth changed → uid=${user.uid}');
+        startListening(user.uid);
+      }
+    } else {
+      debugPrint('🔑 BudgetProvider: auth changed → signed out');
+      stopListening();
+    }
+  }
 
   // ─── State ──────────────────────────────────────────────────────────────────
 
@@ -136,6 +161,7 @@ class BudgetProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _subscription?.cancel();
     super.dispose();
   }

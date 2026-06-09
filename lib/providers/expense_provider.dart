@@ -12,13 +12,40 @@ import 'package:smart_expens/services/expense_service.dart';
 /// latest data. The subscription is properly cancelled on sign-out and
 /// on [dispose] to prevent memory leaks and orphaned listeners.
 class ExpenseProvider with ChangeNotifier {
+  ExpenseProvider() {
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
+      _onAuthStateChanged,
+    );
+  }
+
   final ExpenseService _service = ExpenseService();
+
+  /// Subscription to FirebaseAuth state changes — drives stream lifecycle.
+  StreamSubscription<User?>? _authSubscription;
 
   /// Active Firestore stream subscription. Stored so it can be cancelled.
   StreamSubscription<List<ExpenseModel>>? _subscription;
 
   /// UID currently subscribed to — used to reconnect after stream errors.
   String? _activeUid;
+
+  // ─── Auth callback ──────────────────────────────────────────────────────────
+
+  /// Called whenever auth state changes (login / logout / token refresh).
+  void _onAuthStateChanged(User? user) {
+    if (user != null && user.uid.isNotEmpty) {
+      // Only reconnect if the uid actually changed.
+      if (_activeUid != user.uid) {
+        debugPrint(
+          '🔑 ExpenseProvider: auth changed → uid=${user.uid}',
+        );
+        startListening(user.uid);
+      }
+    } else {
+      debugPrint('🔑 ExpenseProvider: auth changed → signed out');
+      stopListening();
+    }
+  }
 
   // ─── State ────────────────────────────────────────────────────────────────
 
@@ -146,10 +173,15 @@ class ExpenseProvider with ChangeNotifier {
 
             notifyListeners();
 
-            // Firestore watch streams can close with INTERNAL errors; reconnect
-            // silently so the existing expense list stays visible.
+            // Only reconnect on transient errors (network, internal).
+            // Permission-denied / unauthenticated will never self-resolve,
+            // so retrying would create an infinite loop.
+            final isTransient = error is! AppException ||
+                (error.code != AppErrorCode.permissionDenied &&
+                 error.code != AppErrorCode.unauthenticated);
+
             final activeUid = _activeUid;
-            if (activeUid != null && activeUid.isNotEmpty) {
+            if (isTransient && activeUid != null && activeUid.isNotEmpty) {
               Future.delayed(const Duration(seconds: 2), () {
                 if (_activeUid == activeUid) {
                   debugPrint(
@@ -159,6 +191,7 @@ class ExpenseProvider with ChangeNotifier {
                 }
               });
             }
+
           },
           cancelOnError: false,
         );
@@ -328,6 +361,7 @@ class ExpenseProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _subscription?.cancel();
     super.dispose();
   }

@@ -4,7 +4,7 @@ class UserModel {
   final String uid;
   final String name;
   final String email;
-  final String? image;
+  final String? profileImage;
   final DateTime createdAt;
   final double? monthlyBudget;
 
@@ -12,7 +12,7 @@ class UserModel {
     required this.uid,
     required this.name,
     required this.email,
-    this.image,
+    this.profileImage,
     required this.createdAt,
     this.monthlyBudget,
   });
@@ -23,7 +23,7 @@ class UserModel {
       'uid': uid,
       'name': name,
       'email': email,
-      'image': image,
+      'profileImage': profileImage,
       'createdAt': createdAt,
       'monthlyBudget': monthlyBudget,
     };
@@ -35,7 +35,7 @@ class UserModel {
       uid: map['uid'] as String,
       name: map['name'] as String,
       email: map['email'] as String,
-      image: map['image'] as String?,
+      profileImage: (map['profileImage'] ?? map['image']) as String?,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       monthlyBudget: (map['monthlyBudget'] as num?)?.toDouble(),
     );
@@ -52,7 +52,7 @@ class UserModel {
     String? uid,
     String? name,
     String? email,
-    String? image,
+    String? profileImage,
     DateTime? createdAt,
     double? monthlyBudget,
   }) {
@@ -60,7 +60,7 @@ class UserModel {
       uid: uid ?? this.uid,
       name: name ?? this.name,
       email: email ?? this.email,
-      image: image ?? this.image,
+      profileImage: profileImage ?? this.profileImage,
       createdAt: createdAt ?? this.createdAt,
       monthlyBudget: monthlyBudget ?? this.monthlyBudget,
     );
@@ -68,7 +68,7 @@ class UserModel {
 
   @override
   String toString() {
-    return 'UserModel(uid: $uid, name: $name, email: $email, image: $image, createdAt: $createdAt)';
+    return 'UserModel(uid: $uid, name: $name, email: $email, profileImage: $profileImage, createdAt: $createdAt)';
   }
 
   @override
@@ -79,7 +79,7 @@ class UserModel {
         other.uid == uid &&
         other.name == name &&
         other.email == email &&
-        other.image == image &&
+        other.profileImage == profileImage &&
         other.createdAt == createdAt;
   }
 
@@ -88,7 +88,7 @@ class UserModel {
     return uid.hashCode ^
         name.hashCode ^
         email.hashCode ^
-        image.hashCode ^
+        profileImage.hashCode ^
         createdAt.hashCode;
   }
 }

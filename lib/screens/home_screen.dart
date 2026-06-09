@@ -10,10 +10,27 @@ import 'package:smart_expens/widgets/custom_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:math';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   static const ChartService _chartService = ChartService();
+
+  /// Dropdown options and their month counts — same as Reports screen
+  static const _dropdownOptions = {
+    'Last Month': 1,
+    'Last 2 Months': 2,
+    'Last 3 Months': 3,
+    'Last 6 Months': 6,
+  };
+
+  String _selectedRange = 'Last 6 Months';
+
+  int get _monthCount => _dropdownOptions[_selectedRange]!;
 
   @override
   Widget build(BuildContext context) {
@@ -35,16 +52,11 @@ class HomeScreen extends StatelessWidget {
         ? Colors.red
         : Colors.green;
 
-    // Chart data for last 6 months — same ChartService as Reports
-    final chartData = _chartService.getChartData(expenseProvider.expenses, 6);
-    final List<FlSpot> spots = List.generate(
-      chartData.length,
-      (i) => FlSpot(i.toDouble(), chartData[i].value),
+    // Chart data — same ChartService and logic as Reports
+    final chartData = _chartService.getChartData(
+      expenseProvider.expenses,
+      _monthCount,
     );
-
-    final chartMaxY = (spots.isEmpty)
-        ? 100.0
-        : max(100.0, spots.map((s) => s.y).reduce(max) * 1.2);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -77,11 +89,11 @@ class HomeScreen extends StatelessWidget {
             },
             icon: CircleAvatar(
               radius: 30,
-              backgroundImage: currentUser?.image != null
-                  ? NetworkImage(currentUser!.image!)
+              backgroundImage: currentUser?.profileImage != null
+                  ? NetworkImage(currentUser!.profileImage!)
                   : null,
-              child: currentUser?.image == null
-                  ? Icon(Icons.person, size: 30)
+              child: currentUser?.profileImage == null
+                  ? Icon(Icons.person, size: 55)
                   : null,
             ),
           ),
@@ -114,7 +126,7 @@ class HomeScreen extends StatelessWidget {
                           radius: 25,
                           backgroundColor: Colors.green.shade100,
                           child: Icon(
-                            size: 30,
+                            size: 50,
                             Icons.account_balance_wallet,
                             color: Color(0xff115E38),
                           ),
@@ -204,11 +216,12 @@ class HomeScreen extends StatelessWidget {
 
               SizedBox(height: 10),
 
-              // Container 3 — Spending Trend Chart
+              // Container 3 — Spending Trend Chart (same style as Reports)
               CustomCard(
-                height: 400,
+                height: 420,
                 child: Column(
                   children: [
+                    // Header with functional Dropdown
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -219,126 +232,15 @@ class HomeScreen extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.grey),
-                          ),
-                          child: const Row(
-                            children: [
-                              Text('Last 6 Months'),
-                              Icon(Icons.keyboard_arrow_down),
-                            ],
-                          ),
-                        ),
+                        _buildDropdown(),
                       ],
                     ),
                     const SizedBox(height: 20),
 
-                    // Chart
+                    // Chart — same smooth line chart as Reports
                     SizedBox(
-                      height: 280,
-                      child: LineChart(
-                        LineChartData(
-                          gridData: FlGridData(
-                            show: true,
-                            drawVerticalLine: false,
-                            horizontalInterval: chartMaxY / 5,
-                            getDrawingHorizontalLine: (value) => FlLine(
-                              color: Colors.grey.shade300,
-                              strokeWidth: 1,
-                            ),
-                          ),
-                          titlesData: FlTitlesData(
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                interval: chartMaxY / 5,
-                                reservedSize: 40,
-                                getTitlesWidget: (value, meta) => Text(
-                                  value.toInt().toString(),
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ),
-                            ),
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 28,
-                                getTitlesWidget: (value, meta) {
-                                  final idx = value.toInt();
-                                  if (idx < 0 || idx >= chartData.length) {
-                                    return const Text('');
-                                  }
-                                  return Text(
-                                    chartData[idx].label.split(' ').first,
-                                    style: const TextStyle(fontSize: 11),
-                                  );
-                                },
-                              ),
-                            ),
-                            rightTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            topTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                          ),
-                          borderData: FlBorderData(
-                            show: true,
-                            border: Border(
-                              left: BorderSide(color: Colors.black, width: 2),
-                              bottom: BorderSide(color: Colors.black, width: 2),
-                            ),
-                          ),
-                          minX: 0,
-                          maxX: spots.isEmpty ? 5 : spots.length - 1,
-                          minY: 0,
-                          maxY: chartMaxY,
-                          lineBarsData: [
-                            LineChartBarData(
-                              spots: spots,
-                              isCurved: true,
-                              color: const Color(0xff115E38),
-                              barWidth: 3,
-                              dotData: FlDotData(
-                                show: true,
-                                getDotPainter:
-                                    (spot, percent, barData, index) =>
-                                        FlDotCirclePainter(
-                                          radius: 4,
-                                          color: const Color(0xff115E38),
-                                          strokeWidth: 0,
-                                        ),
-                              ),
-                              belowBarData: BarAreaData(
-                                show: true,
-                                color: const Color(0xff115E38).withAlpha(31),
-                              ),
-                            ),
-                          ],
-                          lineTouchData: LineTouchData(
-                            enabled: true,
-                            touchTooltipData: LineTouchTooltipData(
-                              getTooltipItems: (touchedSpots) =>
-                                  touchedSpots.map((ts) {
-                                    final idx = ts.x.toInt();
-                                    final label = idx < chartData.length
-                                        ? chartData[idx].label
-                                        : '';
-                                    return LineTooltipItem(
-                                      '$label: \$${ts.y.toStringAsFixed(2)}',
-                                      const TextStyle(color: Colors.white),
-                                    );
-                                  }).toList(),
-                            ),
-                          ),
-                        ),
-                      ),
+                      height: 300,
+                      child: _buildSmoothLineChart(chartData),
                     ),
                   ],
                 ),
@@ -347,6 +249,195 @@ class HomeScreen extends StatelessWidget {
               SizedBox(height: 20),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Dropdown Widget (same as Reports) ──────────────────────────────────────
+
+  Widget _buildDropdown() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedRange,
+          isDense: true,
+          icon: const Icon(Icons.keyboard_arrow_down),
+          items: _dropdownOptions.keys
+              .map(
+                (label) => DropdownMenuItem(
+                  value: label,
+                  child: Text(label, style: const TextStyle(fontSize: 14)),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            if (value != null) setState(() => _selectedRange = value);
+          },
+        ),
+      ),
+    );
+  }
+
+  // ─── Smooth Line Chart (same style as Reports) ─────────────────────────────
+
+  Widget _buildSmoothLineChart(List<ChartDataPoint> data) {
+    if (data.isEmpty) {
+      return const Center(child: Text('No data available'));
+    }
+
+    final spots = List.generate(
+      data.length,
+      (i) => FlSpot(i.toDouble(), data[i].value),
+    );
+
+    final maxVal = spots.map((s) => s.y).reduce(max);
+    final chartMaxY = max(100.0, maxVal * 1.2);
+
+    // For daily view (Last Month), show every 5th day label
+    final isDailyView = _monthCount == 1;
+
+    return LineChart(
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: chartMaxY / 5,
+          getDrawingHorizontalLine: (value) =>
+              FlLine(color: Colors.grey.shade200, strokeWidth: 1),
+        ),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: chartMaxY / 5,
+              reservedSize: 45,
+              getTitlesWidget: (value, meta) => Text(
+                value.toInt().toString(),
+                style: const TextStyle(fontSize: 11, color: Color(0xff6B7280)),
+              ),
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              getTitlesWidget: (value, meta) {
+                final idx = value.toInt();
+                if (idx < 0 || idx >= data.length) return const Text('');
+
+                if (isDailyView) {
+                  // Show label every 5th day
+                  if ((idx + 1) % 5 != 0 && idx != 0) return const Text('');
+                  return Text(
+                    '${idx + 1}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Color(0xff6B7280),
+                    ),
+                  );
+                }
+
+                return Text(
+                  data[idx].label.split(' ').first,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xff6B7280),
+                  ),
+                );
+              },
+            ),
+          ),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: const Border(
+            left: BorderSide(color: Colors.black, width: 2),
+            bottom: BorderSide(color: Colors.black, width: 2),
+          ),
+        ),
+        minX: 0,
+        maxX: spots.length - 1,
+        minY: 0,
+        maxY: chartMaxY,
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            curveSmoothness: 0.35,
+            preventCurveOverShooting: true,
+            color: const Color(0xff115E38),
+            barWidth: 3,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: !isDailyView, // Hide dots on daily view (too many points)
+              getDotPainter: (spot, percent, barData, index) =>
+                  FlDotCirclePainter(
+                    radius: 5,
+                    color: Colors.white,
+                    strokeWidth: 2.5,
+                    strokeColor: const Color(0xff115E38),
+                  ),
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xff115E38).withAlpha(60),
+                  const Color(0xff115E38).withAlpha(5),
+                ],
+              ),
+            ),
+          ),
+        ],
+        lineTouchData: LineTouchData(
+          enabled: true,
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipItems: (touchedSpots) => touchedSpots.map((ts) {
+              final idx = ts.x.toInt();
+              final label = idx < data.length ? data[idx].label : '';
+              return LineTooltipItem(
+                '$label\n\$${ts.y.toStringAsFixed(2)}',
+                const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              );
+            }).toList(),
+          ),
+          getTouchedSpotIndicator: (barData, spotIndexes) {
+            return spotIndexes.map((i) {
+              return TouchedSpotIndicatorData(
+                FlLine(
+                  color: const Color(0xff115E38).withAlpha(80),
+                  strokeWidth: 2,
+                  dashArray: [4, 4],
+                ),
+                FlDotData(
+                  show: true,
+                  getDotPainter: (spot, percent, bar, index) =>
+                      FlDotCirclePainter(
+                        radius: 6,
+                        color: const Color(0xff115E38),
+                        strokeWidth: 2,
+                        strokeColor: Colors.white,
+                      ),
+                ),
+              );
+            }).toList();
+          },
         ),
       ),
     );

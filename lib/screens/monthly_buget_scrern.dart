@@ -231,21 +231,24 @@ class _MonthlyBudgetScreenState extends State<MonthlyBudgetScreen> {
     }
 
     final val = double.tryParse(budgetController.text.trim()) ?? 0.0;
-    final success = await context.read<BudgetProvider>().saveBudget(uid, val);
+    
+    final budgetProvider = context.read<BudgetProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
 
-    if (!mounted) return;
+    final success = await budgetProvider.saveBudget(uid, val);
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text(' Budget saved successfully!'),
           backgroundColor: Color(0xff0E6B3E),
         ),
       );
-      Navigator.pop(context);
+      navigator.pop();
     } else {
-      final error = context.read<BudgetProvider>().errorMessage;
-      ScaffoldMessenger.of(context).showSnackBar(
+      final error = budgetProvider.errorMessage;
+      messenger.showSnackBar(
         SnackBar(
           content: Text(error ?? 'Failed to save budget'),
           backgroundColor: Colors.red,

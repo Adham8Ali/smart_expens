@@ -1,13 +1,16 @@
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smart_expens/models/user_model.dart';
 import 'package:smart_expens/models/user_input.dart';
 import 'package:smart_expens/services/auth_service.dart';
 import 'package:smart_expens/services/firestore_service.dart';
+import 'package:smart_expens/services/storage_service.dart';
 
 class UserProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   final FirestoreService _firestoreService = FirestoreService();
+  final StorageService _storageService = StorageService();
 
   UserModel? _currentUser;
   User? _authUser;
@@ -326,6 +329,43 @@ class UserProvider with ChangeNotifier {
         _currentUser = _currentUser!.copyWith(monthlyBudget: budget);
       }
     } catch (e) {
+      _errorMessage = e.toString();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Upload and update user profile image
+  Future<String> uploadProfileImage(XFile imageFile) async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      if (_authUser == null) {
+        throw Exception('No authenticated user');
+      }
+
+      // 1. Upload to Firebase Storage
+      final downloadUrl = await _storageService.uploadProfileImage(
+        uid: _authUser!.uid,
+        imageFile: imageFile,
+      );
+
+      // 2. Update Auth profile and Firestore document
+      await _authService.updateProfile(
+        uid: _authUser!.uid,
+        photoURL: downloadUrl,
+      );
+
+      // 3. Refresh user data locally
+      await _fetchUserData(_authUser!.uid);
+
+      return downloadUrl;
+    } catch (e) {
+      debugPrint(' Error updating profile image: $e');
       _errorMessage = e.toString();
       rethrow;
     } finally {

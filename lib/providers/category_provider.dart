@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:smart_expens/models/category_model.dart';
 import 'package:smart_expens/services/category_service.dart';
@@ -8,13 +9,37 @@ import 'package:smart_expens/services/category_service.dart';
 /// Listens to real-time Firestore updates for user's custom categories.
 /// Properly handles stream cancellation during auth transitions.
 class CategoryProvider with ChangeNotifier {
+  CategoryProvider() {
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
+      _onAuthStateChanged,
+    );
+  }
+
   final CategoryService _service = CategoryService();
+
+  /// Subscription to FirebaseAuth state changes — drives stream lifecycle.
+  StreamSubscription<User?>? _authSubscription;
 
   /// Active Firestore stream subscription. Stored so it can be cancelled.
   StreamSubscription<List<CategoryModel>>? _subscription;
 
   /// UID currently subscribed to — used to detect uid changes.
   String? _activeUid;
+
+  // ─── Auth callback ──────────────────────────────────────────────────────────
+
+  /// Called whenever auth state changes (login / logout / token refresh).
+  void _onAuthStateChanged(User? user) {
+    if (user != null && user.uid.isNotEmpty) {
+      if (_activeUid != user.uid) {
+        debugPrint('🔑 CategoryProvider: auth changed → uid=${user.uid}');
+        startListening(user.uid);
+      }
+    } else {
+      debugPrint('🔑 CategoryProvider: auth changed → signed out');
+      stopListening();
+    }
+  }
 
   // ─── State ────────────────────────────────────────────────────────────────
 
@@ -100,7 +125,8 @@ class CategoryProvider with ChangeNotifier {
 
   @override
   void dispose() {
-    stopListening();
+    _authSubscription?.cancel();
+    _subscription?.cancel();
     super.dispose();
   }
 }

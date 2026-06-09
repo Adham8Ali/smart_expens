@@ -113,7 +113,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: selectedCat,
+                initialValue: selectedCat,
                 decoration: const InputDecoration(labelText: 'Category'),
                 items: CategoryModel.predefined
                     .map(
@@ -162,9 +162,11 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                 return;
               }
 
-              final success = await context
-                  .read<ExpenseProvider>()
-                  .updateExpense(
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+              final expenseProvider = context.read<ExpenseProvider>();
+
+              final success = await expenseProvider.updateExpense(
                     expense,
                     uid: expense.uid,
                     expenseId: expense.id,
@@ -176,9 +178,9 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         : noteCtrl.text.trim(),
                   );
 
-              if (success && mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
+              if (success) {
+                navigator.pop();
+                messenger.showSnackBar(
                   const SnackBar(content: Text('✅ Updated successfully')),
                 );
               }
@@ -205,18 +207,16 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
+              final expenseProvider = context.read<ExpenseProvider>();
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
-              final success = await context
-                  .read<ExpenseProvider>()
-                  .deleteExpense(
-                    expense.id,
-                    uid: expense.uid,
-                    expenseId: expense.id,
-                  );
-              if (success && mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('🗑️ Deleted')));
+              final success = await expenseProvider.deleteExpense(
+                expense.id,
+                uid: expense.uid,
+                expenseId: expense.id,
+              );
+              if (success) {
+                messenger.showSnackBar(const SnackBar(content: Text('🗑️ Deleted')));
               }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
@@ -345,7 +345,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                             ),
                             const SizedBox(height: 8),
                             DropdownButtonFormField<String?>(
-                              value: selectedCategoryId,
+                              initialValue: selectedCategoryId,
                               decoration: InputDecoration(
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 12,

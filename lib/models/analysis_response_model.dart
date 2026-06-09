@@ -21,8 +21,13 @@ class AnalysisResponseModel {
     );
   }
 
-  /// Returns all top-level keys as displayable insight entries.
-  List<MapEntry<String, dynamic>> get insights => rawData.entries.toList();
+  /// Returns only the recommendation entries, filtering out total spend, remaining, and cluster information.
+  List<MapEntry<String, dynamic>> get insights {
+    final ignoredKeys = {'total_spend', 'totalspend', 'remaining', 'cluster'};
+    return rawData.entries
+        .where((entry) => !ignoredKeys.contains(entry.key.toLowerCase().replaceAll('_', '')))
+        .toList();
+  }
 
   /// Checks if the response contains any data.
   bool get hasData => rawData.isNotEmpty;

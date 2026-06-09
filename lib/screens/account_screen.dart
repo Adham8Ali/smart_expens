@@ -17,7 +17,19 @@ class AccountScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: Text('Account')),
+      appBar: AppBar(
+        title: Align(
+          alignment: Alignment.center,
+          child: Text(
+            'Account',
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(10),
         child: Column(
@@ -26,46 +38,50 @@ class AccountScreen extends StatelessWidget {
             SizedBox(
               height: 120,
               child: Card(
-                elevation: 5,
+                color: Colors.white,
+                elevation: 10,
                 child: userProvider.isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 40,
-                            backgroundImage: currentUser?.image != null
-                                ? NetworkImage(currentUser!.image!)
-                                : null,
-                            child: currentUser?.image == null
-                                ? const Icon(Icons.person, size: 40)
-                                : null,
-                          ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  currentUser?.name ?? '—',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF115E38),
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  currentUser?.email ?? '—',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
+                    : Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundImage: currentUser?.profileImage != null
+                                  ? NetworkImage(currentUser!.profileImage!)
+                                  : null,
+                              child: currentUser?.profileImage == null
+                                  ? const Icon(Icons.person, size: 40)
+                                  : null,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 20),
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    currentUser?.name ?? '—',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    currentUser?.email ?? '—',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
               ),
             ),

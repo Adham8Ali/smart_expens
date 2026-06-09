@@ -1,30 +1,74 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_expens/models/category_model.dart';
+import 'package:smart_expens/providers/category_provider.dart';
+import 'package:smart_expens/screens/category_management_screen.dart';
 
-import 'package:smart_expens/main.dart';
+class FakeCategoryProvider extends ChangeNotifier implements CategoryProvider {
+  final List<CategoryModel> _fakeCategories;
+  final bool _fakeLoading;
+  final String? _fakeError;
+
+  FakeCategoryProvider({
+    List<CategoryModel> categories = const [],
+    bool isLoading = false,
+    String? errorMessage,
+  })  : _fakeCategories = categories,
+        _fakeLoading = isLoading,
+        _fakeError = errorMessage;
+
+  @override
+  List<CategoryModel> get categories => _fakeCategories;
+
+  @override
+  bool get isLoading => _fakeLoading;
+
+  @override
+  String? get errorMessage => _fakeError;
+
+  @override
+  void startListening(String uid) {}
+
+  @override
+  void stopListening() {}
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('CategoryManagementScreen shows header, categories, and no add button', (WidgetTester tester) async {
+    final categories = [
+      const CategoryModel(id: 'food', name: 'Food & Dining'),
+      const CategoryModel(id: 'transport', name: 'Transportation'),
+      const CategoryModel(id: 'shopping', name: 'Shopping'),
+    ];
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    final fakeProvider = FakeCategoryProvider(
+      categories: categories,
+      isLoading: false,
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ChangeNotifierProvider<CategoryProvider>.value(
+          value: fakeProvider,
+          child: const CategoryManagementScreen(),
+        ),
+      ),
+    );
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify header title is present
+    expect(find.text('Category Management'), findsOneWidget);
+    // Verify "Current Categories" section title is present
+    expect(find.text('Current Categories'), findsOneWidget);
+
+    // Verify custom category chips are displayed
+    expect(find.text('Food & Dining'), findsOneWidget);
+    expect(find.text('Transportation'), findsOneWidget);
+    expect(find.text('Shopping'), findsOneWidget);
+
+    // Verify there is NO floating action button, no "add" icon or buttons
+    expect(find.byType(FloatingActionButton), findsNothing);
+    expect(find.text('Add Category'), findsNothing);
+    expect(find.text('Add First Category'), findsNothing);
   });
 }

@@ -57,7 +57,7 @@ class FirebaseAuthService {
           uid: authUser.uid,
           name: user.fullName.trim(),
           email: normalizedEmail,
-          image: authUser.photoURL,
+          profileImage: authUser.photoURL,
           createdAt: DateTime.now(),
         );
 

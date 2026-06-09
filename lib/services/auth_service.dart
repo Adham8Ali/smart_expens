@@ -71,13 +71,13 @@ class AuthService {
     );
 
     // Update Firestore document
-    if (displayName != null || photoURL != null) {
-      final Map<String, dynamic> updates = {};
-      if (displayName != null) updates['name'] = displayName;
-      if (photoURL != null) updates['image'] = photoURL;
+      if (displayName != null || photoURL != null) {
+        final Map<String, dynamic> updates = {};
+        if (displayName != null) updates['name'] = displayName;
+        if (photoURL != null) updates['profileImage'] = photoURL;
 
-      await _firestoreService.updateUserFields(uid, updates);
-    }
+        await _firestoreService.updateUserFields(uid, updates);
+      }
   }
 
   /// Update user email in Auth and Firestore
