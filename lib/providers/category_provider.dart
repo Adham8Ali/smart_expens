@@ -26,7 +26,7 @@ class CategoryProvider with ChangeNotifier {
   /// UID currently subscribed to — used to detect uid changes.
   String? _activeUid;
 
-  // ─── Auth callback ──────────────────────────────────────────────────────────
+  // ─── Auth callback ───────────────────────────────────────────────────────
 
   /// Called whenever auth state changes (login / logout / token refresh).
   void _onAuthStateChanged(User? user) {

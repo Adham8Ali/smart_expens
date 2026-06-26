@@ -30,7 +30,7 @@ class BudgetService {
     try {
       debugPrint(' BudgetService.saveBudget → uid=$uid budget=$budget');
       await _userDoc(uid).update({
-        'monthlyBudget': budget,
+        'budget': budget,
         'budgetUpdatedAt': FieldValue.serverTimestamp(),
       });
       debugPrint(' BudgetService.saveBudget done');
@@ -57,7 +57,7 @@ class BudgetService {
           if (!doc.exists) return null;
           final data = doc.data();
           if (data == null) return null;
-          return (data['monthlyBudget'] as num?)?.toDouble();
+          return (data['budget'] as num?)?.toDouble();
         })
         .handleError((Object error) {
           if (error is FirebaseException) {
