@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_expens/core/circleBtn.dart';
 import 'package:smart_expens/models/category_model.dart';
 import 'package:smart_expens/models/expense_model.dart';
 import 'package:smart_expens/providers/expense_provider.dart';
@@ -95,7 +96,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       text: expense.amount.toStringAsFixed(2),
     );
     final noteCtrl = TextEditingController(text: expense.note ?? '');
-    String selectedCat = expense.categoryId;
+    String selectedCat = expense.categoryId.toLowerCase();
     DateTime selectedDate = expense.date;
 
     showDialog(
@@ -167,16 +168,16 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               final expenseProvider = context.read<ExpenseProvider>();
 
               final success = await expenseProvider.updateExpense(
-                    expense,
-                    uid: expense.uid,
-                    expenseId: expense.id,
-                    amount: amount,
-                    categoryId: selectedCat,
-                    date: selectedDate,
-                    note: noteCtrl.text.trim().isEmpty
-                        ? null
-                        : noteCtrl.text.trim(),
-                  );
+                expense,
+                uid: expense.uid,
+                expenseId: expense.id,
+                amount: amount,
+                categoryId: selectedCat,
+                date: selectedDate,
+                note: noteCtrl.text.trim().isEmpty
+                    ? null
+                    : noteCtrl.text.trim(),
+              );
 
               if (success) {
                 navigator.pop();
@@ -216,7 +217,9 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                 expenseId: expense.id,
               );
               if (success) {
-                messenger.showSnackBar(const SnackBar(content: Text('🗑️ Deleted')));
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('🗑️ Deleted')),
+                );
               }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
@@ -651,17 +654,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     );
   }
 
-  Widget circleBtn(IconData icon) {
-    return Container(
-      height: 50,
-      width: 50,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Icon(icon),
-    );
-  }
+ 
 }
 
 const _head = TextStyle(color: Colors.white, fontWeight: FontWeight.bold);

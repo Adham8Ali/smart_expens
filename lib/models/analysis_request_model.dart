@@ -13,6 +13,7 @@ class AnalysisRequestModel {
   final double bills;
   final double health;
   final double entertainment;
+  final double others; // تمت إضافة others
 
   const AnalysisRequestModel({
     required this.salary,
@@ -23,6 +24,7 @@ class AnalysisRequestModel {
     required this.bills,
     required this.health,
     required this.entertainment,
+    required this.others, // تمت إضافة others
   });
 
   /// Transforms Firestore expense data into the API request format.
@@ -32,22 +34,28 @@ class AnalysisRequestModel {
   }) {
     final now = DateTime.now();
     final categoryTotals = <String, double>{};
+    
     for (final expense in expenses) {
       if (expense.date.year == now.year && expense.date.month == now.month) {
-        categoryTotals[expense.categoryId] =
-            (categoryTotals[expense.categoryId] ?? 0.0) + expense.amount;
+        // تحويل كل التصنيفات إلى حروف صغيرة لتوحيد قراءة بيانات الويب والفلاتر معاً
+        final cat = expense.categoryId.toLowerCase();
+        categoryTotals[cat] = (categoryTotals[cat] ?? 0.0) + expense.amount;
       }
     }
 
+    // ملاحظة: الويب يرسل Dining بداخل الـ Food، لذا سنجمعهما هنا كإجراء احترازي
+    final foodTotal = (categoryTotals['food'] ?? 0.0) + (categoryTotals['dining'] ?? 0.0);
+
     return AnalysisRequestModel(
       salary: salary,
-      food: categoryTotals['food'] ?? 0.0,
+      food: foodTotal,
       drink: categoryTotals['drink'] ?? 0.0,
       shopping: categoryTotals['shopping'] ?? 0.0,
-      transport: categoryTotals['transport'] ?? 0.0,
+      transport: categoryTotals['transportation'] ?? (categoryTotals['transport'] ?? 0.0), // دعم transportation و transport
       bills: categoryTotals['bills'] ?? 0.0,
       health: categoryTotals['health'] ?? 0.0,
       entertainment: categoryTotals['entertainment'] ?? 0.0,
+      others: categoryTotals['others'] ?? 0.0, // تمت إضافة others
     );
   }
 
@@ -61,6 +69,7 @@ class AnalysisRequestModel {
       'bills': bills,
       'health': health,
       'entertainment': entertainment,
+      'others': others, // تمت إضافة others
     };
   }
 
@@ -68,5 +77,5 @@ class AnalysisRequestModel {
   String toString() =>
       'AnalysisRequestModel(salary: $salary, food: $food, drink: $drink, '
       'shopping: $shopping, transport: $transport, bills: $bills, '
-      'health: $health, entertainment: $entertainment)';
+      'health: $health, entertainment: $entertainment, others: $others)';
 }

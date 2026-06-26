@@ -19,7 +19,7 @@ class AccountScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Align(
-          alignment: Alignment.center,
+          alignment: Alignment.topLeft,
           child: Text(
             'Account',
             style: TextStyle(

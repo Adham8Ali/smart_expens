@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_expens/core/circleBtn.dart';
 import 'package:smart_expens/widgets/custom_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
@@ -80,9 +81,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 // Header
                 Row(
                   children: [
+                    circleBtn(Icons.file_copy_sharp),
+                    const SizedBox(width: 15),
+
                     const Expanded(
                       child: Align(
-                        alignment: Alignment.center,
+                        alignment: Alignment.topLeft,
                         child: Text(
                           'Reports',
                           style: TextStyle(

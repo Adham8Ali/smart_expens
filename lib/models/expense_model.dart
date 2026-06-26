@@ -6,8 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ExpenseModel {
   /// Auto-generated Firestore document ID. Empty string before first save.
   final String id;
-
-  /// UID of the owning user.
+                     
   final String uid;
 
   /// Amount in the user's local currency.
